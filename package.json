@@ -1,0 +1,28 @@
+{
+  "name": "rentcar",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://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@github.com/alsayedaldahawy/RentCar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/alsayedaldahawy/RentCar/issues"
+  },
+  "homepage": "https://github.com/alsayedaldahawy/RentCar#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.0.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.14.1"
+  }
+}
