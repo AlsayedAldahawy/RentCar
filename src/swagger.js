@@ -1,5 +1,10 @@
 const swaggerJsdoc = require('swagger-jsdoc');
 
+const isProduction = process.env.NODE_ENV === 'production';
+const serverUrl = isProduction
+  ? 'https://49b6812f-1b1d-4330-89e4-77a9606a47f6-00-l3n7sfutzk4d.janeway.replit.dev/api'   // Replit
+  : 'http://localhost:3000/api';         // Development
+
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -10,11 +15,11 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000/api',
-        description: 'Local server'
+        url: serverUrl,
+        description: isProduction ? 'Production server' : 'Local server',
       }
     ],
-    components: { // ✅ لازم تكون هنا جوا definition
+    components: {
       securitySchemes: {
         bearerAuth: {
           type: 'http',
@@ -29,9 +34,8 @@ const options = {
       }
     ]
   },
-  apis: ['./src/routes/*.js', './src/docs/*.js'], // Routes to be documented
+  apis: ['./src/routes/*.js', './src/docs/*.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
-
 module.exports = swaggerSpec;
