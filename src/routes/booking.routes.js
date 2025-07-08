@@ -7,6 +7,12 @@ const authenticateToken = require('../middleware/auth');
 // Make a booking for a car by a logged-in user
 router.post('/', authenticateToken, async (req, res) => {
   const userId = req.user.id;
+
+  // 🔐 Allow only users to book
+  if (req.user.role !== 'user') {
+    return res.status(403).json({ message: 'Only users can make bookings' });
+  }
+
   const { car_id, start_date, end_date } = req.body;
 
   if (!car_id || !start_date || !end_date) {
@@ -63,6 +69,11 @@ router.post('/', authenticateToken, async (req, res) => {
 router.get('/user', authenticateToken, async (req, res) => {
   const userId = req.user.id;
 
+  // 🔐 Allow only users to access their bookings
+  if (req.user.role !== 'user') {
+    return res.status(403).json({ message: 'Only users can view their bookings' });
+  }
+
   try {
     const [bookings] = await db.query(
       `SELECT b.*, c.name AS car_name, c.model, c.image_url
@@ -84,6 +95,11 @@ router.get('/user', authenticateToken, async (req, res) => {
 // Get all bookings for the logged-in company (cars they own)
 router.get('/company', authenticateToken, async (req, res) => {
   const companyId = req.user.id;
+
+  // 🔐 Check if role is company
+  if (req.user.role !== 'company') {
+    return res.status(403).json({ message: 'Only companies can access this route' });
+  }
 
   try {
     const [bookings] = await db.query(
@@ -108,10 +124,14 @@ router.get('/company', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
   const bookingId = req.params.id;
   const requesterId = req.user.id;
-  const requesterRole = req.user.role; // You may need to store this in the token during login
+  const requesterRole = req.user.role;
+
+  // 🔐 Optional role check (extra safety)
+  if (!['user', 'company'].includes(requesterRole)) {
+    return res.status(403).json({ message: 'Not authorized to delete bookings' });
+  }
 
   try {
-    // 1. Get booking with car and user info
     const [rows] = await db.query(
       `SELECT b.*, c.company_id
        FROM bookings b
@@ -126,12 +146,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     const booking = rows[0];
 
-    // 2. Authorization check
     if (booking.user_id !== requesterId && booking.company_id !== requesterId) {
       return res.status(403).json({ message: 'Not authorized to cancel this booking' });
     }
 
-    // 3. Delete booking
     await db.query('DELETE FROM bookings WHERE id = ?', [bookingId]);
 
     res.json({ message: 'Booking cancelled successfully' });
@@ -147,6 +165,12 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   const bookingId = req.params.id;
   const userId = req.user.id;
+
+  // 🔐 Only users can edit their bookings
+  if (req.user.role !== 'user') {
+    return res.status(403).json({ message: 'Only users can edit bookings' });
+  }
+
   const { start_date, end_date } = req.body;
 
   if (!start_date || !end_date) {
@@ -154,7 +178,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 
   try {
-    // 1. Get the booking and verify ownership
     const [rows] = await db.query(
       'SELECT * FROM bookings WHERE id = ?',
       [bookingId]
@@ -170,7 +193,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to edit this booking' });
     }
 
-    // 2. Check for date conflict with other bookings
     const [conflicts] = await db.query(
       `SELECT * FROM bookings
        WHERE car_id = ? AND id != ? AND (
@@ -185,12 +207,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Car already booked for the new dates' });
     }
 
-    // 3. Recalculate total price
     const days = Math.ceil((new Date(end_date) - new Date(start_date)) / (1000 * 60 * 60 * 24)) + 1;
     const [carData] = await db.query('SELECT price_per_day FROM cars WHERE id = ?', [booking.car_id]);
     const total_price = carData[0].price_per_day * days;
 
-    // 4. Update the booking
     await db.query(
       'UPDATE bookings SET start_date = ?, end_date = ?, total_price = ? WHERE id = ?',
       [start_date, end_date, total_price, bookingId]

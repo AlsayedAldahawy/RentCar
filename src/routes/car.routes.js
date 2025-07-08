@@ -4,8 +4,14 @@ const db = require('../config/db');
 const authenticateToken = require('../middleware/auth');
 const authorizeCompanyCarOwnership = require('../middleware/authorizeCarOwner');
 
+// ===== POST /cars =====
 // Add new car (only for authenticated companies)
 router.post('/', authenticateToken, async (req, res) => {
+  // 🔐 Ensure role is company
+  if (req.user.role !== 'company') {
+    return res.status(403).json({ message: 'Only companies can add cars' });
+  }
+
   const {
     name,
     model,
@@ -65,6 +71,7 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// ===== GET /cars =====
 // Get all cars
 router.get('/', async (req, res) => {
   try {
@@ -166,6 +173,11 @@ router.delete('/:id', authenticateToken, authorizeCompanyCarOwnership, async (re
 // ===== GET /cars/company =====
 // Get all cars added by the logged-in company
 router.get('/company', authenticateToken, async (req, res) => {
+  // 🔐 Ensure only companies can access their own cars
+  if (req.user.role !== 'company') {
+    return res.status(403).json({ message: 'Only companies can access this route' });
+  }
+
   const companyId = req.user.id;
 
   try {

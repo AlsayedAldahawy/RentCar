@@ -10,16 +10,13 @@ router.post('/register', async (req, res) => {
   const { name, email, password, phone } = req.body;
 
   try {
-    // Check if company already exists
     const [existingCompany] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
     if (existingCompany.length > 0) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert company
     await db.query(
       'INSERT INTO companies (name, email, password, phone) VALUES (?, ?, ?, ?)',
       [name, email, hashedPassword, phone]
@@ -33,13 +30,11 @@ router.post('/register', async (req, res) => {
   }
 });
 
-
 // ===== Login =====
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Check if company exists
     const [companyResult] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
     if (companyResult.length === 0) {
       return res.status(400).json({ message: 'Invalid email or password' });
@@ -47,14 +42,17 @@ router.post('/login', async (req, res) => {
 
     const company = companyResult[0];
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, company.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // Generate JWT
-    const token = generateToken({ id: company.id, email: company.email });
+    // 🔐 Include role in token
+    const token = generateToken({
+      id: company.id,
+      email: company.email,
+      role: 'company' // 👈 very important!
+    });
 
     res.status(200).json({
       message: 'Login successful',
@@ -75,6 +73,11 @@ router.post('/login', async (req, res) => {
 
 // ===== Protected Profile Route =====
 router.get('/profile', authenticateToken, async (req, res) => {
+  // Optional: check if role is company
+  if (req.user.role !== 'company') {
+    return res.status(403).json({ message: 'Only companies can access this profile' });
+  }
+
   try {
     const [result] = await db.query(
       'SELECT id, name, email, phone FROM companies WHERE id = ?',

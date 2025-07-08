@@ -10,16 +10,13 @@ router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-    // Check if email already exists
     const [existingUser] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
     if (existingUser.length > 0) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert user into DB
     await db.query(
       'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
       [name, email, hashedPassword]
@@ -39,7 +36,6 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Check if user exists
     const [userResult] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
     if (userResult.length === 0) {
       return res.status(400).json({ message: 'Invalid email or password' });
@@ -47,14 +43,17 @@ router.post('/login', async (req, res) => {
 
     const user = userResult[0];
 
-    // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // Generate token
-    const token = generateToken({ id: user.id, email: user.email });
+    // 🔐 Include role in the token
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      role: 'user'
+    });
 
     res.status(200).json({
       message: 'Login successful',
@@ -72,8 +71,14 @@ router.post('/login', async (req, res) => {
   }
 });
 
+
 // ===== Protected Route Example =====
 router.get('/profile', authenticateToken, async (req, res) => {
+  // Optional: check role
+  if (req.user.role !== 'user') {
+    return res.status(403).json({ message: 'Only users can access this profile' });
+  }
+
   try {
     const [result] = await db.query('SELECT id, name, email FROM users WHERE id = ?', [req.user.id]);
     if (result.length === 0) {
