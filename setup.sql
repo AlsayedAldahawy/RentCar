@@ -50,7 +50,7 @@ CREATE TABLE bookings (
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   total_price DECIMAL(10,2),
-  status ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'pending',
+  status ENUM('pending', 'confirmed', 'cancelled', 'rejected', 'completed') DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (car_id) REFERENCES cars(id) ON DELETE CASCADE
@@ -65,3 +65,4 @@ CREATE TABLE admins (
   role ENUM('superadmin', 'moderator') DEFAULT 'moderator',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+

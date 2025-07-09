@@ -42,31 +42,75 @@
  * @swagger
  * /bookings/user:
  *   get:
- *     summary: Get all bookings made by the logged-in user
+ *     summary: Get all bookings for the logged-in user
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of user bookings
- *       401:
- *         description: Unauthorized
+ *         description: List of bookings for the user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 bookings:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       car_id:
+ *                         type: integer
+ *                       car_name:
+ *                         type: string
+ *                       model:
+ *                         type: string
+ *                       image_url:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                         example: pending
  */
+
 
 /**
  * @swagger
  * /bookings/company:
  *   get:
- *     summary: Get all bookings made on company cars
+ *     summary: Get all bookings for the logged-in company
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of bookings on the company's cars
- *       401:
- *         description: Unauthorized
+ *         description: List of bookings for the company cars
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 bookings:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       user_id:
+ *                         type: integer
+ *                       user_name:
+ *                         type: string
+ *                       car_name:
+ *                         type: string
+ *                       model:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                         example: confirmed
  */
+
 
 
 /**
@@ -140,4 +184,49 @@
  *         description: Booking not found
  *       401:
  *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /bookings/{id}/status:
+ *   put:
+ *     summary: Update the status of a booking
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Booking ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [confirmed, cancelled, rejected, completed]
+ *                 example: confirmed
+ *     responses:
+ *       200:
+ *         description: Booking status updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Booking status updated to confirmed
+ *       400:
+ *         description: Invalid status value
+ *       403:
+ *         description: Not authorized to change this status
+ *       404:
+ *         description: Booking not found
  */

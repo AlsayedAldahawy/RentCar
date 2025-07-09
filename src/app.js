@@ -9,6 +9,8 @@ const bookingRoutes = require('./routes/booking.routes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 
+const adminAuthRoutes = require('./routes/admins.routes');
+
 app.use(express.json()); // JSON parsing
 
 app.use('/api/cars', carRoutes);
@@ -16,6 +18,7 @@ app.use('/', routes); // Use routes
 app.use('/api/users', userRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/admins', adminAuthRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

@@ -52,9 +52,10 @@ router.post('/', authenticateToken, async (req, res) => {
 
     // 4. Insert booking
     await db.query(
-      'INSERT INTO bookings (user_id, car_id, start_date, end_date, total_price) VALUES (?, ?, ?, ?, ?)',
-      [userId, car_id, start_date, end_date, totalPrice]
+      'INSERT INTO bookings (user_id, car_id, start_date, end_date, total_price, status) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, car_id, start_date, end_date, totalPrice, 'pending']
     );
+
 
     res.status(201).json({ message: 'Booking created successfully', total_price: totalPrice });
 
@@ -76,13 +77,14 @@ router.get('/user', authenticateToken, async (req, res) => {
 
   try {
     const [bookings] = await db.query(
-      `SELECT b.*, c.name AS car_name, c.model, c.image_url
-       FROM bookings b
-       JOIN cars c ON b.car_id = c.id
-       WHERE b.user_id = ?
-       ORDER BY b.created_at DESC`,
+      `SELECT b.*, b.status, c.name AS car_name, c.model, c.image_url
+      FROM bookings b
+      JOIN cars c ON b.car_id = c.id
+      WHERE b.user_id = ?
+      ORDER BY b.created_at DESC`,
       [userId]
     );
+
 
     res.json({ bookings });
   } catch (err) {
@@ -103,14 +105,15 @@ router.get('/company', authenticateToken, async (req, res) => {
 
   try {
     const [bookings] = await db.query(
-      `SELECT b.*, u.name AS user_name, c.name AS car_name, c.model
-       FROM bookings b
-       JOIN cars c ON b.car_id = c.id
-       JOIN users u ON b.user_id = u.id
-       WHERE c.company_id = ?
-       ORDER BY b.created_at DESC`,
+      `SELECT b.*, b.status, u.name AS user_name, c.name AS car_name, c.model
+      FROM bookings b
+      JOIN cars c ON b.car_id = c.id
+      JOIN users u ON b.user_id = u.id
+      WHERE c.company_id = ?
+      ORDER BY b.created_at DESC`,
       [companyId]
     );
+
 
     res.json({ bookings });
   } catch (err) {
@@ -220,6 +223,55 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
   } catch (err) {
     console.error('Update booking error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT /bookings/:id/status
+router.put('/:id/status', authenticateToken, async (req, res) => {
+  const bookingId = req.params.id;
+  const { status } = req.body;
+  const requester = req.user;
+
+  // Only allow specific status values
+  const validStatuses = ['confirmed', 'cancelled', 'rejected', 'completed'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ message: 'Invalid status value' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT b.*, c.company_id 
+       FROM bookings b 
+       JOIN cars c ON b.car_id = c.id 
+       WHERE b.id = ?`,
+      [bookingId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    const booking = rows[0];
+
+    // Authorization rules
+    const isCompany = requester.role === 'company' && requester.id === booking.company_id;
+    const isUser = requester.role === 'user' && requester.id === booking.user_id;
+
+    if (status === 'confirmed' || status === 'rejected' || status === 'completed') {
+      if (!isCompany) return res.status(403).json({ message: 'Only the company can update to this status' });
+    }
+
+    if (status === 'cancelled') {
+      if (!isCompany && !isUser) return res.status(403).json({ message: 'Unauthorized to cancel this booking' });
+    }
+
+    await db.query('UPDATE bookings SET status = ? WHERE id = ?', [status, bookingId]);
+
+    res.json({ message: `Booking status updated to ${status}` });
+
+  } catch (err) {
+    console.error('Update booking status error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -9,4 +9,6 @@
  *     description: Endpoints to manage cars
  *   - name: Bookings
  *     description: Booking operations for users and companies
+ *   - name: Admins
+ *     description: Endpoints for admin registration and login
  */
