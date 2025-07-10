@@ -93,4 +93,21 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// Get user by ID
+router.get('/:id', async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    const [rows] = await db.query('SELECT id, name, email FROM users WHERE id = ?', [userId]);
+
+    if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
+
+    res.json({ user: rows[0] });
+  } catch (err) {
+    console.error('Get user error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 module.exports = router;

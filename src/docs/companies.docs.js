@@ -68,3 +68,23 @@
  *       404:
  *         description: Company not found
  */
+
+/**
+ * @swagger
+ * /companies/{id}:
+ *   get:
+ *     summary: Get company by ID
+ *     tags: [Companies]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Company ID
+ *     responses:
+ *       200:
+ *         description: Company profile retrieved
+ *       404:
+ *         description: Company not found
+ */

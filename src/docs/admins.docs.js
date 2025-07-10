@@ -153,3 +153,29 @@
  *       500:
  *         description: Server error
  */
+
+/**
+ * @swagger
+ * /admins/{id}:
+ *   get:
+ *     summary: Get admin by ID (superadmin only)
+ *     tags: [Admins]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Admin ID
+ *     responses:
+ *       200:
+ *         description: Admin profile retrieved
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Admin not found
+ */

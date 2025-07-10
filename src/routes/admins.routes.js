@@ -205,5 +205,19 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
   }
 });
 
+router.get('/:id', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
+  const adminId = req.params.id;
+
+  try {
+    const [rows] = await db.query('SELECT id, name, email, role FROM admins WHERE id = ?', [adminId]);
+
+    if (rows.length === 0) return res.status(404).json({ message: 'Admin not found' });
+
+    res.json({ admin: rows[0] });
+  } catch (err) {
+    console.error('Get admin error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = router;

@@ -157,3 +157,23 @@
  *         description: Server error
  */
 
+/**
+ * @swagger
+ * /cars/{id}:
+ *   get:
+ *     summary: Get car by ID
+ *     tags: [Cars]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Car ID
+ *     responses:
+ *       200:
+ *         description: Car details retrieved
+ *       404:
+ *         description: Car not found
+ */
+

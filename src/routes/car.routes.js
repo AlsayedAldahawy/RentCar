@@ -189,4 +189,27 @@ router.get('/company', authenticateToken, async (req, res) => {
   }
 });
 
+// Get car by ID
+router.get('/:id', async (req, res) => {
+  const carId = req.params.id;
+
+  try {
+    const [rows] = await db.query(
+      `SELECT cars.*, companies.name AS company_name 
+       FROM cars 
+       JOIN companies ON cars.company_id = companies.id 
+       WHERE cars.id = ?`,
+      [carId]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ message: 'Car not found' });
+
+    res.json({ car: rows[0] });
+  } catch (err) {
+    console.error('Get car error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 module.exports = router;

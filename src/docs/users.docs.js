@@ -70,3 +70,23 @@
  *       404:
  *         description: User not found
  */
+
+/**
+ * @swagger
+ * /users/{id}:
+ *   get:
+ *     summary: Get user by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User profile retrieved
+ *       404:
+ *         description: User not found
+ */

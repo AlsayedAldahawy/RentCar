@@ -65,4 +65,3 @@ CREATE TABLE admins (
   role ENUM('superadmin', 'moderator') DEFAULT 'moderator',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-

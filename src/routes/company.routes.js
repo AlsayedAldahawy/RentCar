@@ -96,4 +96,20 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// Get company by ID (profile public view)
+router.get('/:id', async (req, res) => {
+  const companyId = req.params.id;
+
+  try {
+    const [rows] = await db.query('SELECT id, name, email, phone FROM companies WHERE id = ?', [companyId]);
+
+    if (rows.length === 0) return res.status(404).json({ message: 'Company not found' });
+
+    res.json({ company: rows[0] });
+  } catch (err) {
+    console.error('Get company error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
