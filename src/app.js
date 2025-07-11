@@ -5,6 +5,7 @@ const userRoutes = require('./routes/user.routes');
 const companyRoutes = require('./routes/company.routes');
 const carRoutes = require('./routes/car.routes');
 const bookingRoutes = require('./routes/booking.routes');
+const uploadRoutes = require('./routes/uploading.routes')
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
@@ -19,6 +20,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admins', adminAuthRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

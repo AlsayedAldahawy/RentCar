@@ -43,8 +43,10 @@
  *                 type: number
  *               transmission:
  *                 type: string
+ *                 enum: [automatic, manual]
  *               fuel_type:
  *                 type: string
+ *                 enum: [petrol, diesel, electric, hybrid]
  *               mileage:
  *                 type: integer
  *               color:
