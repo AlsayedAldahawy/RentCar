@@ -6,6 +6,9 @@ const companyRoutes = require('./routes/company.routes');
 const carRoutes = require('./routes/car.routes');
 const bookingRoutes = require('./routes/booking.routes');
 const uploadRoutes = require('./routes/uploading.routes')
+const cors = require("cors");
+
+app.use(cors());
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
