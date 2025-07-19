@@ -6,6 +6,8 @@ function authorizeAdmin(allowedRoles = []) {
 
     // 1. Check if token decoded and contains admin type
     if (!user || user.type !== 'admin') {
+      !user ? mess =  res.status(403).json({ message: `not user ${req.user.type}` }): mess = res.status(403).json({ message: `not admin ${req.user.type}` });
+      return mess;
       return res.status(403).json({ message: 'Access denied: Admins only' });
     }
 

@@ -72,8 +72,13 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // ===== GET /cars =====
-// Get all cars
+// Get all cars with pagination
 router.get('/', async (req, res) => {
+  // ⏱️ Pagination setup
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const offset = (page - 1) * pageSize;
+
   try {
     const [cars] = await db.query(
       `SELECT 
@@ -82,13 +87,64 @@ router.get('/', async (req, res) => {
         companies.phone AS company_phone 
        FROM cars 
        JOIN companies ON cars.company_id = companies.id
-       ORDER BY created_at DESC`
+       ORDER BY cars.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [pageSize, offset]
     );
 
-    res.status(200).json({ cars });
+    // 🔢 Get total count
+    const [[{ count }]] = await db.query(`SELECT COUNT(*) AS count FROM cars`);
 
+    res.status(200).json({
+      cars,
+      pagination: {
+        total: count,
+        page,
+        pageSize,
+        totalPages: Math.ceil(count / pageSize),
+      },
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching cars:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== GET /cars/company/:companyId =====
+// Public: Get all cars of a specific company
+router.get('/company/:companyId', async (req, res) => {
+  const companyId = req.params.companyId;
+
+  // ⏱️ Pagination setup
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const offset = (page - 1) * pageSize;
+
+  try {
+    const [cars] = await db.query(
+      `SELECT * FROM cars
+       WHERE company_id = ?
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [companyId, pageSize, offset]
+    );
+
+    const [[{ count }]] = await db.query(
+      `SELECT COUNT(*) AS count FROM cars WHERE company_id = ?`,
+      [companyId]
+    );
+
+    res.json({
+      cars,
+      pagination: {
+        total: count,
+        page,
+        pageSize,
+        totalPages: Math.ceil(count / pageSize),
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching company cars:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -170,24 +226,24 @@ router.delete('/:id', authenticateToken, authorizeCompanyCarOwnership, async (re
   }
 });
 
-// ===== GET /cars/company =====
-// Get all cars added by the logged-in company
-router.get('/company', authenticateToken, async (req, res) => {
-  // 🔐 Ensure only companies can access their own cars
-  if (req.user.role !== 'company') {
-    return res.status(403).json({ message: 'Only companies can access this route' });
-  }
+// // ===== GET /cars/company =====
+// // Get all cars added by the logged-in company
+// router.get('/company', authenticateToken, async (req, res) => {
+//   // 🔐 Ensure only companies can access their own cars
+//   if (req.user.role !== 'company') {
+//     return res.status(403).json({ message: 'Only companies can access this route' });
+//   }
 
-  const companyId = req.user.id;
+//   const companyId = req.user.id;
 
-  try {
-    const [cars] = await db.query('SELECT * FROM cars WHERE company_id = ?', [companyId]);
-    res.json({ cars });
-  } catch (err) {
-    console.error('Error fetching company cars:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+//   try {
+//     const [cars] = await db.query('SELECT * FROM cars WHERE company_id = ?', [companyId]);
+//     res.json({ cars });
+//   } catch (err) {
+//     console.error('Error fetching company cars:', err);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// });
 
 // Get car by ID
 router.get('/:id', async (req, res) => {

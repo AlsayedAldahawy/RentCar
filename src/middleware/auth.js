@@ -17,8 +17,12 @@ function authenticateToken(req, res, next) {
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      role: decoded.role
+      role: decoded.role,
     };
+
+    console.log(req.user.role)
+    req.user.role === 'superadmin' || req.user.role === 'moderator' ? req.user.type = decoded.type: null;
+    console.log(req.user.type)
 
     next();
   } catch (err) {

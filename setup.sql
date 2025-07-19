@@ -9,6 +9,8 @@ CREATE TABLE companies (
   email VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   phone VARCHAR(20),
+  is_verified BOOLEAN DEFAULT FALSE,
+  verification_token VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -18,6 +20,8 @@ CREATE TABLE users (
   name VARCHAR(100) NOT NULL,
   email VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
+  is_verified BOOLEAN DEFAULT FALSE,
+  verification_token VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -26,6 +30,7 @@ CREATE TABLE cars (
   id INT AUTO_INCREMENT PRIMARY KEY,
   company_id INT NOT NULL,
   name VARCHAR(100) NOT NULL,
+  city VARCHAR(100) NOT NULL,
   model VARCHAR(100),
   capacity INT,
   price_per_day DECIMAL(10,2) NOT NULL,

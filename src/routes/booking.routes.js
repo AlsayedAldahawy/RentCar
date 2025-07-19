@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const authorizeAdmin = require('../middleware/authorizeAdmin')
 const authenticateToken = require('../middleware/auth');
 
 // ===== POST /bookings =====
@@ -66,7 +67,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // ===== GET /bookings/user =====
-// Get all bookings for the logged-in user
+// Get all bookings for the logged-in user with pagination
 router.get('/user', authenticateToken, async (req, res) => {
   const userId = req.user.id;
 
@@ -75,26 +76,46 @@ router.get('/user', authenticateToken, async (req, res) => {
     return res.status(403).json({ message: 'Only users can view their bookings' });
   }
 
+  // ⏱️ Pagination setup
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const offset = (page - 1) * pageSize;
+
   try {
     const [bookings] = await db.query(
       `SELECT b.*, b.status, c.name AS car_name, c.model, c.image_url
       FROM bookings b
       JOIN cars c ON b.car_id = c.id
       WHERE b.user_id = ?
-      ORDER BY b.created_at DESC`,
+      ORDER BY b.created_at DESC
+      LIMIT ? OFFSET ?`,
+      [userId, pageSize, offset]
+    );
+
+    // 🔢 Get total count
+    const [[{ count }]] = await db.query(
+      `SELECT COUNT(*) AS count FROM bookings WHERE user_id = ?`,
       [userId]
     );
 
-
-    res.json({ bookings });
+    res.json({
+      bookings,
+      pagination: {
+        total: count,
+        page,
+        pageSize,
+        totalPages: Math.ceil(count / pageSize),
+      },
+    });
   } catch (err) {
     console.error('User bookings error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+
 // ===== GET /bookings/company =====
-// Get all bookings for the logged-in company (cars they own)
+// Get bookings for logged-in company with pagination
 router.get('/company', authenticateToken, async (req, res) => {
   const companyId = req.user.id;
 
@@ -103,24 +124,86 @@ router.get('/company', authenticateToken, async (req, res) => {
     return res.status(403).json({ message: 'Only companies can access this route' });
   }
 
+  // ⏱️ Pagination setup
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const offset = (page - 1) * pageSize;
+
   try {
     const [bookings] = await db.query(
       `SELECT b.*, b.status, u.name AS user_name, c.name AS car_name, c.model
-      FROM bookings b
-      JOIN cars c ON b.car_id = c.id
-      JOIN users u ON b.user_id = u.id
-      WHERE c.company_id = ?
-      ORDER BY b.created_at DESC`,
+       FROM bookings b
+       JOIN cars c ON b.car_id = c.id
+       JOIN users u ON b.user_id = u.id
+       WHERE c.company_id = ?
+       ORDER BY b.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [companyId, pageSize, offset]
+    );
+
+    // 🔢 Get total bookings count for this company
+    const [[{ count }]] = await db.query(
+      `SELECT COUNT(*) AS count
+       FROM bookings b
+       JOIN cars c ON b.car_id = c.id
+       WHERE c.company_id = ?`,
       [companyId]
     );
 
-
-    res.json({ bookings });
+    res.json({
+      bookings,
+      pagination: {
+        total: count,
+        page,
+        pageSize,
+        totalPages: Math.ceil(count / pageSize),
+      },
+    });
   } catch (err) {
     console.error('Company bookings error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+
+// ===== GET /bookings/all =====
+// Get all bookings with pagination
+router.get('/all', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
+
+  // ⏱️ Pagination setup
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const offset = (page - 1) * pageSize;
+
+  try {
+    const [bookings] = await db.query(
+      `SELECT b.*, b.status, u.name AS user_name, c.name AS car_name, c.model
+       FROM bookings b
+       JOIN cars c ON b.car_id = c.id
+       JOIN users u ON b.user_id = u.id
+       ORDER BY b.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [pageSize, offset]
+    );
+
+    // 🔢 Get total bookings count
+    const [[{ count }]] = await db.query(`SELECT COUNT(*) AS count FROM bookings b`);
+
+    res.json({
+      bookings,
+      pagination: {
+        total: count,
+        page,
+        pageSize,
+        totalPages: Math.ceil(count / pageSize),
+      },
+    });
+  } catch (err) {
+    console.error('bookings error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 // ===== DELETE /bookings/:id =====
 // Cancel a booking (user or car owner only)

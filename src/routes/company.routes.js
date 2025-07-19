@@ -5,30 +5,50 @@ const db = require('../config/db');
 const generateToken = require('../utils/generateToken');
 const authenticateToken = require('../middleware/auth');
 
+const jwt = require('jsonwebtoken');
+const sendAgreementFile = require('../utils/agreementFile');
+const sendVerificationEmail = require('../utils/emailService')
+
 // ===== Register =====
 router.post('/register', async (req, res) => {
   const { name, email, password, phone } = req.body;
 
   try {
+    // Check if company already exists
     const [existingCompany] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
     if (existingCompany.length > 0) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await db.query(
-      'INSERT INTO companies (name, email, password, phone) VALUES (?, ?, ?, ?)',
-      [name, email, hashedPassword, phone]
+    // Insert company (unverified by default)
+    const [result] = await db.query(
+      'INSERT INTO companies (name, email, password, phone, is_verified) VALUES (?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, phone, false]
     );
 
-    res.status(201).json({ message: 'Company registered successfully' });
+    const companyId = result.insertId;
+
+    // Generate verification token
+    const token = jwt.sign(
+      { id: companyId, email, role: 'company' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // Send verification email
+    await sendAgreementFile(email);
+
+    res.status(201).json({ message: 'Company registered. Please check your email to verify your account.' });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // ===== Login =====
 router.post('/login', async (req, res) => {
@@ -41,6 +61,11 @@ router.post('/login', async (req, res) => {
     }
 
     const company = companyResult[0];
+
+
+    if (!company.is_verified) {
+      return res.status(401).json({ message: 'Please verify your account first' });
+    }
 
     const isMatch = await bcrypt.compare(password, company.password);
     if (!isMatch) {
@@ -111,5 +136,38 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// ====== Resend Verification =========
+// router.post('/resend-verification', async (req, res) => {
+//   const { email } = req.body;
+
+//   try {
+//     const [companies] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
+
+//     if (companies.length === 0) {
+//       return res.status(404).json({ message: 'Company not found' });
+//     }
+
+//     const company = companies[0];
+
+//     if (company.is_verified) {
+//       return res.status(400).json({ message: 'Company is already verified' });
+//     }
+
+//     const token = jwt.sign(
+//       { id: company.id, email: company.email, role: 'company' },
+//       process.env.JWT_SECRET,
+//       { expiresIn: '1h' }
+//     );
+
+//     await sendVerificationEmail(company.email, token, 'company');
+
+//     res.json({ message: 'Verification email resent. Please check your inbox.' });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// });
 
 module.exports = router;

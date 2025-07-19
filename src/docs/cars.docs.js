@@ -2,11 +2,22 @@
  * @swagger
  * /cars:
  *   get:
- *     summary: Get all available cars
+ *     summary: Get all cars with pagination
  *     tags: [Cars]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number for pagination (default is 1)
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *         description: Number of results per page (default is 10)
  *     responses:
  *       200:
- *         description: A list of all cars
+ *         description: List of cars
  *         content:
  *           application/json:
  *             schema:
@@ -16,7 +27,125 @@
  *                   type: array
  *                   items:
  *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       model:
+ *                         type: string
+ *                       price:
+ *                         type: number
+ *                       image_url:
+ *                         type: string
+ *                       available:
+ *                         type: boolean
+ *                       company_id:
+ *                         type: integer
+ *                       company_name:
+ *                         type: string
+ *                       company_phone:
+ *                         type: string
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Server error
  */
+
+/**
+ * @swagger
+ * /cars/company/{companyId}:
+ *   get:
+ *     summary: Get all cars for a specific company
+ *     tags: [Cars]
+ *     parameters:
+ *       - in: path
+ *         name: companyId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID of the company
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number for pagination (default is 1)
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *         description: Number of results per page (default is 10)
+ *     responses:
+ *       200:
+ *         description: List of cars for the specified company
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cars:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       model:
+ *                         type: string
+ *                       price:
+ *                         type: number
+ *                       image_url:
+ *                         type: string
+ *                       available:
+ *                         type: boolean
+ *                       company_id:
+ *                         type: integer
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       500:
+ *         description: Server error
+ */
+
 
 /**
  * @swagger
@@ -60,7 +189,9 @@
  *                 type: string
  *               description:
  *                 type: string
- *             required: [name, model, price_per_day, fuel_type]
+ *               city:
+ *                 type: string
+ *             required: [name, model, price_per_day, fuel_type, city]
  *     responses:
  *       201:
  *         description: Car added successfully

@@ -6,29 +6,41 @@ const generateToken = require('../utils/generateToken');
 const authenticateToken = require('../middleware/auth');
 
 // ===== Register =====
+// routes/user.routes.js
+const sendVerificationEmail = require('../utils/emailService');
+const jwt = require('jsonwebtoken');
+
 router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, phone } = req.body;
 
   try {
-    const [existingUser] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (existingUser.length > 0) {
+    const [existing] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await db.query(
-      'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-      [name, email, hashedPassword]
+    const [result] = await db.query(
+      'INSERT INTO users (name, email, password, phone, is_verified) VALUES (?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, phone, false]
     );
 
-    res.status(201).json({ message: 'User registered successfully' });
+    const userId = result.insertId;
 
+    // Generate verification token (expires in 1 hour)
+    const token = jwt.sign({ id: userId, email, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Send email
+    await sendVerificationEmail(email, token, 'user');
+
+    res.status(201).json({ message: 'Registration successful. Please verify your email.' });
   } catch (err) {
-    console.error(err);
+    console.error('Registration error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 
 // ===== Login =====
@@ -42,6 +54,10 @@ router.post('/login', async (req, res) => {
     }
 
     const user = userResult[0];
+
+    if (!user.is_verified) {
+      return res.status(401).json({ message: 'Please verify your email first' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -109,5 +125,38 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
+// ====== Resend Verification =========
+router.post('/resend-verification', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = users[0];
+
+    if (user.is_verified) {
+      return res.status(400).json({ message: 'Account is already verified' });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: 'user' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    await sendVerificationEmail(user.email, token, 'user');
+
+    res.json({ message: 'Verification email resent. Please check your inbox.' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = router;
