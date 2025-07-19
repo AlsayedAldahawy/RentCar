@@ -88,7 +88,7 @@ router.post('/login', async (req, res) => {
 });
 
 
-// ===== Protected Route Example =====
+// ===== Protected Route =====
 router.get('/profile', authenticateToken, async (req, res) => {
   // Optional: check role
   if (req.user.role !== 'user') {
@@ -96,7 +96,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 
   try {
-    const [result] = await db.query('SELECT id, name, email FROM users WHERE id = ?', [req.user.id]);
+    const [result] = await db.query('SELECT id, name, email, phone, is_verified FROM users WHERE id = ?', [req.user.id]);
     if (result.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -110,11 +110,11 @@ router.get('/profile', authenticateToken, async (req, res) => {
 });
 
 // Get user by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   const userId = req.params.id;
 
   try {
-    const [rows] = await db.query('SELECT id, name, email FROM users WHERE id = ?', [userId]);
+    const [rows] = await db.query('SELECT id, name, email, phone, is_verified FROM users WHERE id = ?', [userId]);
 
     if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
 
@@ -124,6 +124,42 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// GET /users?page=1&limit=10
+router.get('/', authenticateToken, authorizeAdmin(['superadmin', 'moderator'], async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+
+  try {
+    const [rows] = await db.query(
+      'SELECT id, name, email, phone, is_verified FROM users LIMIT ? OFFSET ?',
+      [limit, offset]
+    );
+
+    const [countResult] = await db.query('SELECT COUNT(*) AS total FROM users');
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'No users found' });
+    }
+
+    res.json({
+      users: rows,
+      pagination: {
+        total,
+        totalPages,
+        currentPage: page,
+        pageSize: limit,
+      },
+    });
+  } catch (err) {
+    console.error('Get users error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}));
+
 
 
 // ====== Resend Verification =========

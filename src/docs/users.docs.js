@@ -75,8 +75,10 @@
  * @swagger
  * /users/{id}:
  *   get:
- *     summary: Get user by ID
+ *     summary: Get a user by ID (Admin only)
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -86,7 +88,91 @@
  *         description: User ID
  *     responses:
  *       200:
- *         description: User profile retrieved
+ *         description: User data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     is_verified:
+ *                       type: boolean
+ *       403:
+ *         description: Unauthorized (Admins only)
  *       404:
  *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+
+
+/**
+ * @swagger
+ * /users:
+ *   get:
+ *     summary: Get all users with pagination (Admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number (default is 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Results per page (default is 10)
+ *     responses:
+ *       200:
+ *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       phone:
+ *                         type: string
+ *                       is_verified:
+ *                         type: boolean
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     currentPage:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *       403:
+ *         description: Unauthorized (Admins only)
+ *       404:
+ *         description: No users found
+ *       500:
+ *         description: Server error
  */
