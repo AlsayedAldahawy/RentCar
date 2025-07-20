@@ -72,14 +72,76 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // ===== GET /cars =====
-// Get all cars with pagination
+// Get all cars with pagination + filters
 router.get('/', async (req, res) => {
-  // ⏱️ Pagination setup
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
   const offset = (page - 1) * pageSize;
 
+  // Extract filters from query
+  const {
+    transmission,
+    fuel_type,
+    capacity,
+    available,
+    city,
+    min_price,
+    max_price,
+    name,
+    model,
+  } = req.query;
+
+  // Build WHERE clause dynamically
+  let whereClause = `WHERE 1=1`;
+  const values = [];
+
+  if (transmission) {
+    whereClause += ` AND cars.transmission = ?`;
+    values.push(transmission);
+  }
+
+  if (fuel_type) {
+    whereClause += ` AND cars.fuel_type = ?`;
+    values.push(fuel_type);
+  }
+
+  if (capacity) {
+    whereClause += ` AND cars.capacity >= ?`;
+    values.push(capacity);
+  }
+
+  if (available !== undefined) {
+    whereClause += ` AND cars.available = ?`;
+    values.push(available);
+  }
+
+  if (city) {
+    whereClause += ` AND cars.city = ?`;
+    values.push(city);
+  }
+
+  if (min_price) {
+    whereClause += ` AND cars.price_per_day >= ?`;
+    values.push(min_price);
+  }
+
+  if (max_price) {
+    whereClause += ` AND cars.price_per_day <= ?`;
+    values.push(max_price);
+  }
+
+  if (name) {
+    whereClause += ` AND cars.name LIKE ?`;
+    values.push(`%${name}%`);
+  }
+
+  if (model) {
+    whereClause += ` AND cars.model LIKE ?`;
+    values.push(`%${model}%`);
+  }
+
   try {
+    // Fetch filtered cars
     const [cars] = await db.query(
       `SELECT 
         cars.*, 
@@ -87,13 +149,20 @@ router.get('/', async (req, res) => {
         companies.phone AS company_phone 
        FROM cars 
        JOIN companies ON cars.company_id = companies.id
+       ${whereClause}
        ORDER BY cars.created_at DESC
        LIMIT ? OFFSET ?`,
-      [pageSize, offset]
+      [...values, pageSize, offset]
     );
 
-    // 🔢 Get total count
-    const [[{ count }]] = await db.query(`SELECT COUNT(*) AS count FROM cars`);
+    // Get total count for pagination
+    const [[{ count }]] = await db.query(
+      `SELECT COUNT(*) AS count 
+       FROM cars 
+       JOIN companies ON cars.company_id = companies.id
+       ${whereClause}`,
+      values
+    );
 
     res.status(200).json({
       cars,
@@ -110,28 +179,87 @@ router.get('/', async (req, res) => {
   }
 });
 
+
 // ===== GET /cars/company/:companyId =====
-// Public: Get all cars of a specific company
+// Public: Get all cars of a specific company with filters
 router.get('/company/:companyId', async (req, res) => {
   const companyId = req.params.companyId;
-
-  // ⏱️ Pagination setup
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
   const offset = (page - 1) * pageSize;
 
+  const {
+    transmission,
+    fuel_type,
+    capacity,
+    available,
+    city,
+    min_price,
+    max_price,
+    name,
+    model,
+  } = req.query;
+
+  let whereClause = `WHERE company_id = ?`;
+  const values = [companyId];
+
+  if (transmission) {
+    whereClause += ` AND transmission = ?`;
+    values.push(transmission);
+  }
+
+  if (fuel_type) {
+    whereClause += ` AND fuel_type = ?`;
+    values.push(fuel_type);
+  }
+
+  if (capacity) {
+    whereClause += ` AND capacity >= ?`;
+    values.push(capacity);
+  }
+
+  if (available !== undefined) {
+    whereClause += ` AND available = ?`;
+    values.push(available);
+  }
+
+  if (city) {
+    whereClause += ` AND city = ?`;
+    values.push(city);
+  }
+
+  if (min_price) {
+    whereClause += ` AND price_per_day >= ?`;
+    values.push(min_price);
+  }
+
+  if (max_price) {
+    whereClause += ` AND price_per_day <= ?`;
+    values.push(max_price);
+  }
+
+  if (name) {
+    whereClause += ` AND name LIKE ?`;
+    values.push(`%${name}%`);
+  }
+
+  if (model) {
+    whereClause += ` AND model LIKE ?`;
+    values.push(`%${model}%`);
+  }
+
   try {
     const [cars] = await db.query(
       `SELECT * FROM cars
-       WHERE company_id = ?
+       ${whereClause}
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`,
-      [companyId, pageSize, offset]
+      [...values, pageSize, offset]
     );
 
     const [[{ count }]] = await db.query(
-      `SELECT COUNT(*) AS count FROM cars WHERE company_id = ?`,
-      [companyId]
+      `SELECT COUNT(*) AS count FROM cars ${whereClause}`,
+      values
     );
 
     res.json({
@@ -148,6 +276,7 @@ router.get('/company/:companyId', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // ===== PUT /cars/:id =====
 // Update a car (only if it belongs to the logged-in company)
@@ -167,7 +296,8 @@ router.put('/:id', authenticateToken, authorizeCompanyCarOwnership, async (req, 
     insurance_expiry,
     image_url,
     description,
-    available
+    available,
+    city
   } = req.body;
 
   try {
@@ -185,7 +315,8 @@ router.put('/:id', authenticateToken, authorizeCompanyCarOwnership, async (req, 
         insurance_expiry = ?, 
         image_url = ?, 
         description = ?, 
-        available = ?
+        available = ?,
+        city = ?
       WHERE id = ?`,
       [
         name,
@@ -201,6 +332,7 @@ router.put('/:id', authenticateToken, authorizeCompanyCarOwnership, async (req, 
         image_url,
         description,
         available,
+        city,
         carId
       ]
     );

@@ -2,22 +2,72 @@
  * @swagger
  * /cars:
  *   get:
- *     summary: Get all cars with pagination
+ *     summary: Get all cars with optional filters and pagination
  *     tags: [Cars]
  *     parameters:
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number for pagination (default is 1)
+ *           default: 1
+ *         description: Page number for pagination
  *       - in: query
  *         name: pageSize
  *         schema:
  *           type: integer
- *         description: Number of results per page (default is 10)
+ *           default: 10
+ *         description: Number of results per page
+ *       - in: query
+ *         name: transmission
+ *         schema:
+ *           type: string
+ *           enum: [manual, automatic]
+ *         description: Filter by transmission type
+ *       - in: query
+ *         name: fuel_type
+ *         schema:
+ *           type: string
+ *           enum: [petrol, diesel, electric, hybrid]
+ *         description: Filter by fuel type
+ *       - in: query
+ *         name: capacity
+ *         schema:
+ *           type: integer
+ *         description: Minimum car capacity
+ *       - in: query
+ *         name: available
+ *         schema:
+ *           type: integer
+ *           enum: [0, 1]
+ *         description: 1 for available cars only, 0 for unavailable
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: Filter by city
+ *       - in: query
+ *         name: min_price
+ *         schema:
+ *           type: number
+ *         description: Minimum daily rental price
+ *       - in: query
+ *         name: max_price
+ *         schema:
+ *           type: number
+ *         description: Maximum daily rental price
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Search by car name (partial match)
+ *       - in: query
+ *         name: model
+ *         schema:
+ *           type: string
+ *         description: Search by car model (partial match)
  *     responses:
  *       200:
- *         description: List of cars
+ *         description: List of filtered cars with pagination info
  *         content:
  *           application/json:
  *             schema:
@@ -34,24 +84,33 @@
  *                         type: string
  *                       model:
  *                         type: string
- *                       price:
+ *                       capacity:
+ *                         type: integer
+ *                       price_per_day:
  *                         type: number
+ *                       transmission:
+ *                         type: string
+ *                       fuel_type:
+ *                         type: string
+ *                       mileage:
+ *                         type: integer
+ *                       color:
+ *                         type: string
+ *                       license_plate:
+ *                         type: string
+ *                       insurance_expiry:
+ *                         type: string
+ *                         format: date
  *                       image_url:
  *                         type: string
  *                       available:
- *                         type: boolean
- *                       company_id:
  *                         type: integer
+ *                       city:
+ *                         type: string
  *                       company_name:
  *                         type: string
  *                       company_phone:
  *                         type: string
- *                       created_at:
- *                         type: string
- *                         format: date-time
- *                       updated_at:
- *                         type: string
- *                         format: date-time
  *                 pagination:
  *                   type: object
  *                   properties:
@@ -65,21 +124,13 @@
  *                       type: integer
  *       500:
  *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Server error
  */
 
 /**
  * @swagger
  * /cars/company/{companyId}:
  *   get:
- *     summary: Get all cars for a specific company
+ *     summary: Get all cars of a specific company with optional filters and pagination
  *     tags: [Cars]
  *     parameters:
  *       - in: path
@@ -92,12 +143,62 @@
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number for pagination (default is 1)
+ *           default: 1
+ *         description: Page number for pagination
  *       - in: query
  *         name: pageSize
  *         schema:
  *           type: integer
- *         description: Number of results per page (default is 10)
+ *           default: 10
+ *         description: Number of results per page
+ *       - in: query
+ *         name: transmission
+ *         schema:
+ *           type: string
+ *           enum: [manual, automatic]
+ *         description: Filter by transmission type
+ *       - in: query
+ *         name: fuel_type
+ *         schema:
+ *           type: string
+ *           enum: [petrol, diesel, electric, hybrid]
+ *         description: Filter by fuel type
+ *       - in: query
+ *         name: capacity
+ *         schema:
+ *           type: integer
+ *         description: Minimum capacity
+ *       - in: query
+ *         name: available
+ *         schema:
+ *           type: integer
+ *           enum: [0, 1]
+ *         description: 1 = available, 0 = not available
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: Filter by city
+ *       - in: query
+ *         name: min_price
+ *         schema:
+ *           type: number
+ *         description: Minimum daily price
+ *       - in: query
+ *         name: max_price
+ *         schema:
+ *           type: number
+ *         description: Maximum daily price
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Search by car name (partial match)
+ *       - in: query
+ *         name: model
+ *         schema:
+ *           type: string
+ *         description: Search by car model (partial match)
  *     responses:
  *       200:
  *         description: List of cars for the specified company
@@ -117,20 +218,16 @@
  *                         type: string
  *                       model:
  *                         type: string
- *                       price:
+ *                       price_per_day:
  *                         type: number
- *                       image_url:
+ *                       fuel_type:
+ *                         type: string
+ *                       transmission:
  *                         type: string
  *                       available:
- *                         type: boolean
- *                       company_id:
  *                         type: integer
- *                       created_at:
+ *                       city:
  *                         type: string
- *                         format: date-time
- *                       updated_at:
- *                         type: string
- *                         format: date-time
  *                 pagination:
  *                   type: object
  *                   properties:
