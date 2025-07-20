@@ -295,33 +295,6 @@
  *                   example: Server error
  */
 
-
-/**
- * @swagger
- * /bookings/{id}:
- *   delete:
- *     summary: Cancel a booking (by user or company)
- *     tags: [Bookings]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *         description: Booking ID
- *     responses:
- *       200:
- *         description: Booking cancelled successfully
- *       403:
- *         description: Not authorized
- *       404:
- *         description: Booking not found
- *       401:
- *         description: Unauthorized
- */
-
 /**
  * @swagger
  * /bookings/{id}:
@@ -348,6 +321,32 @@
  *         description: Unauthorized
  */
 
+
+/**
+ * @swagger
+ * /bookings/{id}:
+ *   delete:
+ *     summary: Cancel a booking (by user or company)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Booking ID
+ *     responses:
+ *       200:
+ *         description: Booking cancelled successfully
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Booking not found
+ *       401:
+ *         description: Unauthorized
+ */
 
 /**
  * @swagger

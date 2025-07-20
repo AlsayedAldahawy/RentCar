@@ -89,11 +89,30 @@ router.post('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, 
 // GET /admins
 // Get all admins (superadmin only)
 router.get('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+
   try {
     const [admins] = await db.query(
-      'SELECT id, name, email, role, created_at FROM admins ORDER BY created_at DESC'
+      `SELECT id, name, email, role, created_at
+       FROM admins
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset]
     );
-    res.json({ admins });
+
+    const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM admins');
+
+    res.json({
+      admins,
+      pagination: {
+        total,
+        page,
+        pageSize: limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (err) {
     console.error('Get admins error:', err);
     res.status(500).json({ message: 'Server error' });
