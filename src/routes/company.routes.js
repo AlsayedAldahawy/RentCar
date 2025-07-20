@@ -193,7 +193,7 @@ router.delete('/:id', authenticateToken, authorizeAdmin(['superadmin']), async (
 });
 
 // PUT /companies/:id (admin only)
-router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'admin']), async (req, res) => {
+router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
   const companyId = parseInt(req.params.id);
   const { name, email, phone, password, status } = req.body;
 

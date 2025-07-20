@@ -214,7 +214,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   const requesterRole = req.user.role;
   // console.log(req.user, req.user.type)
 
-  if (!['user', 'company', 'admin', 'superadmin'].includes(requesterRole)) {
+  if (!['user', 'company', 'moderator', 'superadmin'].includes(requesterRole)) {
     return res.status(403).json({ message: 'Not authorized to get bookings' });
   }
 

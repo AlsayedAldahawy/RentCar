@@ -12,7 +12,7 @@ const sendVerificationEmail = require('../utils/emailService');
 const jwt = require('jsonwebtoken');
 
 router.post('/register', async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone, profilePic } = req.body;
 
   try {
     const [existing] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
@@ -23,8 +23,8 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await db.query(
-      'INSERT INTO users (name, email, password, phone, is_verified) VALUES (?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, phone, false]
+      'INSERT INTO users (name, email, password, phone, profile_pic, is_verified) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, phone, profilePic ?? null, false]
     );
 
     const userId = result.insertId;
@@ -92,12 +92,12 @@ router.post('/login', async (req, res) => {
 // ===== Protected Route =====
 router.get('/profile', authenticateToken, async (req, res) => {
   // Optional: check role
-  if (req.user.role !== 'user') {
+  if (req.user.role !== 'user' || req.user.role !== 'company') {
     return res.status(403).json({ message: 'Only users can access this profile' });
   }
 
   try {
-    const [result] = await db.query('SELECT id, name, email, phone, is_verified FROM users WHERE id = ?', [req.user.id]);
+    const [result] = await db.query('SELECT id, name, email, phone, created_at, profile_pic, is_verified FROM users WHERE id = ?', [req.user.id]);
     if (result.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -110,12 +110,12 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// Get user by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+// Get user by ID (Admins only)
+router.get('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
   const userId = req.params.id;
 
   try {
-    const [rows] = await db.query('SELECT id, name, email, phone, is_verified FROM users WHERE id = ?', [userId]);
+    const [rows] = await db.query('SELECT id, name, email, phone, created_at, profile_pic, status, is_verified FROM users WHERE id = ?', [userId]);
 
     if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
 
@@ -126,21 +126,62 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /users?page=1&limit=10
+// GET /users?page=1&limit=10&name=ali&status=active&is_verified=1
 router.get('/', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
-  console.log("sssss")
+
+  const {
+    name,
+    email,
+    phone,
+    status,
+    is_verified
+  } = req.query;
+
+  let whereClause = 'WHERE 1';
+  const values = [];
+
+  if (name) {
+    whereClause += ' AND name LIKE ?';
+    values.push(`%${name}%`);
+  }
+
+  if (email) {
+    whereClause += ' AND email LIKE ?';
+    values.push(`%${email}%`);
+  }
+
+  if (phone) {
+    whereClause += ' AND phone LIKE ?';
+    values.push(`%${phone}%`);
+  }
+
+  if (status) {
+    whereClause += ' AND status = ?';
+    values.push(status);
+  }
+
+  if (is_verified !== undefined) {
+    whereClause += ' AND is_verified = ?';
+    values.push(is_verified);
+  }
+
   try {
     const [rows] = await db.query(
-      'SELECT id, name, email, phone, is_verified FROM users LIMIT ? OFFSET ?',
-      [limit, offset]
+      `SELECT id, name, email, phone, created_at, profile_pic, status, is_verified
+       FROM users
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...values, limit, offset]
     );
 
-    const [countResult] = await db.query('SELECT COUNT(*) AS total FROM users');
-    const total = countResult[0].total;
-    const totalPages = Math.ceil(total / limit);
+    const [[{ total }]] = await db.query(
+      `SELECT COUNT(*) AS total FROM users ${whereClause}`,
+      values
+    );
 
     if (rows.length === 0) {
       return res.status(404).json({ message: 'No users found' });
@@ -150,13 +191,119 @@ router.get('/', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), 
       users: rows,
       pagination: {
         total,
-        totalPages,
+        totalPages: Math.ceil(total / limit),
         currentPage: page,
         pageSize: limit,
       },
     });
   } catch (err) {
     console.error('Get users error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== Update user profile (self) =====
+router.put('/profile', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'user') {
+    return res.status(403).json({ message: 'Only users can update their profile' });
+  }
+
+  const userId = req.user.id;
+  const { name, phone, profile_pic, password } = req.body;
+
+  try {
+    const updates = [];
+    const values = [];
+
+    if (name) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+
+    if (phone) {
+      updates.push('phone = ?');
+      values.push(phone);
+    }
+
+    if (profile_pic) {
+      updates.push('profile_pic = ?');
+      values.push(profile_pic);
+    }
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.push('password = ?');
+      values.push(hashedPassword);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    values.push(userId);
+
+    await db.query(sql, values);
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (err) {
+    console.error('User profile update error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== Admin update user =====
+router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { name, phone, profile_pic, password, status, is_verified } = req.body;
+
+  try {
+    const updates = [];
+    const values = [];
+
+    if (name) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+
+    if (phone) {
+      updates.push('phone = ?');
+      values.push(phone);
+    }
+
+    if (profile_pic) {
+      updates.push('profile_pic = ?');
+      values.push(profile_pic);
+    }
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.push('password = ?');
+      values.push(hashedPassword);
+    }
+
+    if (status) {
+      updates.push('status = ?');
+      values.push(status);
+    }
+
+    if (is_verified !== undefined) {
+      updates.push('is_verified = ?');
+      values.push(is_verified);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    values.push(userId);
+
+    await db.query(sql, values);
+
+    res.json({ message: 'User updated successfully' });
+  } catch (err) {
+    console.error('Admin update user error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
