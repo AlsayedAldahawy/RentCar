@@ -322,6 +322,32 @@
  *         description: Unauthorized
  */
 
+/**
+ * @swagger
+ * /bookings/{id}:
+ *   get:
+ *     summary: gets a single booking (by user or company)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Booking ID
+ *     responses:
+ *       200:
+ *         description: Booking fetched successfully
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Booking not found
+ *       401:
+ *         description: Unauthorized
+ */
+
 
 /**
  * @swagger

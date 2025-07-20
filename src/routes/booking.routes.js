@@ -205,6 +205,47 @@ router.get('/all', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
 });
 
 
+// ===== GET /bookings/:id =====
+// Get all bookings with pagination
+router.get('/:id', authenticateToken, async (req, res) => {
+
+  const bookingId = req.params.id;
+  const requesterId = req.user.id;
+  const requesterRole = req.user.role;
+  // console.log(req.user, req.user.type)
+
+  if (!['user', 'company', 'admin', 'superadmin'].includes(requesterRole)) {
+    return res.status(403).json({ message: 'Not authorized to get bookings' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT b.*, c.company_id
+       FROM bookings b
+       JOIN cars c ON b.car_id = c.id
+       WHERE b.id = ?`,
+      [bookingId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    const booking = rows[0];
+
+    if (booking.user_id !== requesterId && booking.company_id !== requesterId && req.user.type !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to get this booking' });
+    }
+
+    res.status(200).json({booking});
+
+  } catch (err) {
+    console.error('Geting booking error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 // ===== DELETE /bookings/:id =====
 // Cancel a booking (user or car owner only)
 router.delete('/:id', authenticateToken, async (req, res) => {
