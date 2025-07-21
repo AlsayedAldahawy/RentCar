@@ -19,7 +19,7 @@ const sendVerificationEmail = async (to, token, role = 'user') => {
         to,
         subject: 'Verify your email',
         html: `
-      <div class="verify-email"
+      <div dir="rtl" class="verify-email"
         style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);">
         <header style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee;">
             <h1 style="color: #b01515; margin: 0; font-size: 28px;">RENTCAR Morocco</h1>
