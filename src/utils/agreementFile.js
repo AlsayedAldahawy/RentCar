@@ -32,7 +32,7 @@ const sendAgreementEmail = async (to) => {
             <p style="color: #555555; font-size: 16px; line-height: 1.5; margin-bottom: 25px;">
                 الرجاء التأكد من إرفاق جميع الأوراق والوثائق المطلوبة بدقة لضمان سرعة إتمام مراجعة طلبكم.
             </p>
-            <a href="${uploadDocumentLink}" style="text-decoration: none;">
+            <a href="${agreementFileLink}" style="text-decoration: none;">
                 <button
                     style="background-color: #b01515; color: #ffffff; padding: 12px 25px; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; transition: background-color 0.3s ease;">
                     تحميل وثائق الشركة
