@@ -24,7 +24,8 @@ router.post('/', authenticateToken, async (req, res) => {
     license_plate,
     insurance_expiry,
     image_url,
-    description
+    description,
+    city
   } = req.body;
 
   const companyId = req.user.id; // From Token
@@ -44,8 +45,9 @@ router.post('/', authenticateToken, async (req, res) => {
         license_plate,
         insurance_expiry,
         image_url,
-        description
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        description,
+        city
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         companyId,
         name,
@@ -59,7 +61,8 @@ router.post('/', authenticateToken, async (req, res) => {
         license_plate,
         insurance_expiry,
         image_url,
-        description
+        description,
+        city
       ]
     );
 
