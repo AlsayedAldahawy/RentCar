@@ -44,7 +44,7 @@ router.post('/user', authenticateToken, uploadUserImage.single('image'), async (
 
   try {
     const imageUrl = await uploadToCloudinary(filePath, 'user-profiles');
-    await db.query('UPDATE users SET profile_image = ? WHERE id = ?', [imageUrl, userId]);
+    await db.query('UPDATE users SET profile_pic = ? WHERE id = ?', [imageUrl, userId]);
     res.json({ message: 'User profile image uploaded', imageUrl });
   } catch (err) {
     console.error(err);

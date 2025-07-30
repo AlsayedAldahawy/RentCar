@@ -77,4 +77,7 @@ ADD COLUMN status ENUM('active', 'inactive', 'pending', 'suspended', 'deleted', 
 
 ALTER TABLE users
 ADD COLUMN profile_pic VARCHAR(255),
-ADD COLUMN status ENUM('active', 'inactive', 'pending', 'suspended', 'deleted', 'rejected') DEFAULT 'pending';
+ADD COLUMN status ENUM('active', 'inactive', 'pending', 'suspended', 'deleted', 'rejected') DEFAULT 'pending',
+ADD COLUMN phone VARCHAR(15);
+
+
