@@ -33,28 +33,83 @@
 
 /**
  * @swagger
- * /users/login:
+ * /login:
  *   post:
- *     summary: Login as a user
- *     tags: [Users]
+ *     summary: User login
+ *     description: Authenticates a user with email and password, returns a JWT token on success.
+ *     tags:
+ *       - Authentication
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - password
  *             properties:
  *               email:
  *                 type: string
+ *                 format: email
+ *                 example: user@example.com
  *               password:
  *                 type: string
- *             required: [email, password]
+ *                 format: password
+ *                 example: mySecurePassword123
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Login successful
+ *                 token:
+ *                   type: string
+ *                   description: JWT token
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: John Doe
+ *                     email:
+ *                       type: string
+ *                       example: user@example.com
+ *                     pfp:
+ *                       type: string
+ *                       example: https://example.com/profile.jpg
+ *       400:
+ *         description: Invalid email or password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Invalid email or password
  *       401:
- *         description: Invalid credentials
+ *         description: Email not verified
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Please verify your email first
+ *       500:
+ *         description: Server error
  */
+
 
 /**
  * @swagger
