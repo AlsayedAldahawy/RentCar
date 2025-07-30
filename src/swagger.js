@@ -1,7 +1,6 @@
 const swaggerJsdoc = require('swagger-jsdoc');
 
-const isProduction = process.env.NODE_ENV === 'production';
-const serverUrl = process.env.BASE_URL   // Development
+const serverUrl = `${process.env.BASE_URL}/api`
 
 const options = {
   definition: {
