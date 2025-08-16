@@ -7,6 +7,7 @@ const carRoutes = require('./routes/car.routes');
 const bookingRoutes = require('./routes/booking.routes');
 const uploadRoutes = require('./routes/uploading.routes')
 const verifyRoutes = require('./routes/verify.routes');
+const resetRoutes = require('./routes/reset.routes')
 
 const cors = require("cors");
 
@@ -28,6 +29,7 @@ app.use('/api/admins', adminAuthRoutes);
 app.use('/api/upload', uploadRoutes);
 
 app.use('/api/verify', verifyRoutes);
+app.use('/api/reset', resetRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

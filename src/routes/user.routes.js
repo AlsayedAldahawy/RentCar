@@ -5,10 +5,13 @@ const db = require('../config/db');
 const generateToken = require('../utils/generateToken');
 const authenticateToken = require('../middleware/auth');
 const authorizeAdmin = require('../middleware/authorizeAdmin')
+const crypto = require('crypto');
+const {resetPasswordLimiter} = require('../middleware/rateLimiters')
+
 
 // ===== Register =====
 // routes/user.routes.js
-const sendVerificationEmail = require('../utils/emailService');
+const {sendVerificationEmail, resetPasswordEmail} = require('../utils/emailService');
 const jwt = require('jsonwebtoken');
 
 router.post('/register', async (req, res) => {
@@ -41,8 +44,6 @@ router.post('/register', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-
 
 // ===== Login =====
 router.post('/login', async (req, res) => {
@@ -88,7 +89,6 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 // ===== Protected Route =====
 router.get('/profile', authenticateToken, async (req, res) => {
@@ -309,8 +309,6 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
   }
 });
 
-
-
 // ====== Resend Verification =========
 router.post('/resend-verification', async (req, res) => {
   const { email } = req.body;
@@ -340,6 +338,57 @@ router.post('/resend-verification', async (req, res) => {
 
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
+
+  const { email } = req.body;
+
+  try {
+    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'Email not found' });
+    }
+
+    const user = users[0];
+
+    let token, hashedToken, existing;
+
+ /**
+    * Generate a unique and secure reset token.
+    * 
+    * Even though crypto.randomBytes(32) is already secure and extremely unlikely to produce duplicates,
+    * ÷ use a while loop to check against existing tokens in the database — just in case.
+    * 
+    * For security reasons, ÷ store only the SHA-256 hash of the token in the database.
+    * This way, even if the database is compromised, an attacker cannot use the token to reset the password.
+    * 
+    * The original token (in plain text) will be sent to the user via email and used for verification later.
+ */
+
+    do {
+      token = crypto.randomBytes(32).toString('hex');
+      hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+      [existing] = await db.query('SELECT id FROM users WHERE reset_token = ?', [hashedToken]);
+    } while (existing.length > 0);
+
+    const expiry = new Date(Date.now() + 3600000);
+
+    await db.query('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ? and email = ?', [
+      hashedToken,
+      expiry,
+      user.id,
+      email,
+    ]);
+
+    await resetPasswordEmail(email, token, 'user');
+
+    res.json({ message: 'Password reset link sent to email' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

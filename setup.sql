@@ -80,4 +80,15 @@ ADD COLUMN profile_pic VARCHAR(255),
 ADD COLUMN status ENUM('active', 'inactive', 'pending', 'suspended', 'deleted', 'rejected') DEFAULT 'pending',
 ADD COLUMN phone VARCHAR(15);
 
+ALTER TABLE users
+ADD COLUMN reset_token VARCHAR(255),
+ADD COLUMN reset_token_expiry DATETIME;
+
+
+CREATE TABLE car_galary (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  car_id INT NOT NULL,
+  pic_url TEXT NOT NULL,
+  FOREIGN KEY (car_id) REFERENCES cars(id)
+);
 

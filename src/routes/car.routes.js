@@ -343,7 +343,7 @@ router.put('/:id', authenticateToken, authorizeCompanyCarOwnership, async (req, 
     res.json({ message: 'Car updated successfully' });
   } catch (err) {
     console.error('Update error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `${err}` });
   }
 });
 

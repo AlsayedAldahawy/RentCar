@@ -333,6 +333,7 @@
  *               image_url: { type: string }
  *               description: { type: string }
  *               available: { type: boolean }
+ *               city: { type: string }
  *     responses:
  *       200:
  *         description: Car updated successfully
@@ -343,6 +344,7 @@
  *       500:
  *         description: Server error
  */
+
 
 /**
  * @swagger
