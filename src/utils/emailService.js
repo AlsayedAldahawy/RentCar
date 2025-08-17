@@ -38,7 +38,7 @@ const sendVerificationEmail = async (to, token, role = 'user') => {
 
     await transporter.sendMail(mailOptions);
 };
-const resetPasswordEmail = async (to, token, role = 'user') => {
+const resetPasswordEmail = async (to, token, role) => {
 
     const emailHtmlTemplatePath = path.join(__dirname, 'mailTemplates', 'resetPassMail.html');
     const emailTemplate = fs.readFileSync(emailHtmlTemplatePath, 'utf8');

@@ -84,6 +84,10 @@ ALTER TABLE users
 ADD COLUMN reset_token VARCHAR(255),
 ADD COLUMN reset_token_expiry DATETIME;
 
+ALTER TABLE companies
+ADD COLUMN reset_token VARCHAR(255),
+ADD COLUMN reset_token_expiry DATETIME;
+
 
 CREATE TABLE car_galary (
   id INT AUTO_INCREMENT PRIMARY KEY,

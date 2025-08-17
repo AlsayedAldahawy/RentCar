@@ -227,9 +227,9 @@
 
 /**
  * @swagger
- * /companies/self:
+ * /companies/profile:
  *   put:
- *     summary: Company updates its own data (without changing status)
+ *     summary: Update logged-in company's profile
  *     tags: [Companies]
  *     security:
  *       - bearerAuth: []
@@ -242,20 +242,133 @@
  *             properties:
  *               name:
  *                 type: string
- *               email:
- *                 type: string
- *                 format: email
  *               phone:
+ *                 type: string
+ *               profile_pic:
  *                 type: string
  *               password:
  *                 type: string
+ *             example:
+ *               name: "Ahmed Ala`a"
+ *               phone: "01123456789"
+ *               email: "aa@aa.com"
+ *               profile_pic: "https://example.com/profile.jpg"
  *     responses:
  *       200:
- *         description: Company profile updated successfully
+ *         description: Profile updated successfully
  *       400:
  *         description: No fields to update
+ *       401:
+ *         description: Unauthorized
  *       403:
- *         description: Only companies can access this route
+ *         description: Only users can update their profile
+ *       500:
+ *         description: Server error
+ */
+
+
+/**
+ * @swagger
+ * /companies/reset-password:
+ *   post:
+ *     summary: Request password reset link
+ *     tags: [Companies]
+ *     description: Sends a password reset link to the user's email. The link includes a secure token for verifying the reset request.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Password reset link sent to email
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Password reset link sent to email
+ *       404:
+ *         description: Email not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Email not found
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Too many requests, please try again later
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Server error
+ */
+
+
+/**
+ * @swagger
+ * /companies/update-password:
+ *   post:
+ *     summary: Change logged-in company's password
+ *     description: Only users with role "company" can change their own password.
+ *     tags: [Companies]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: "oldPassword123"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: "newStrongPassword456"
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Old password is incorrect or missing fields
+ *       401:
+ *         description: Unauthorized (no token provided)
+ *       403:
+ *         description: Forbidden (only users can change their passwords)
+ *       404:
+ *         description: User not found
  *       500:
  *         description: Server error
  */

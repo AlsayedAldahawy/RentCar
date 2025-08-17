@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 function authenticateToken(req, res, next) {
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -13,16 +14,14 @@ function authenticateToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ Extract only required fields from token
+    // Extract only required fields from token
     req.user = {
       id: decoded.id,
       email: decoded.email,
       role: decoded.role,
     };
 
-    console.log(req.user.role)
     req.user.role === 'superadmin' || req.user.role === 'moderator' ? req.user.type = decoded.type: null;
-    console.log(req.user.type)
 
     next();
   } catch (err) {

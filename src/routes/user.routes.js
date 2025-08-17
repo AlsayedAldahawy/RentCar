@@ -6,12 +6,12 @@ const generateToken = require('../utils/generateToken');
 const authenticateToken = require('../middleware/auth');
 const authorizeAdmin = require('../middleware/authorizeAdmin')
 const crypto = require('crypto');
-const {resetPasswordLimiter} = require('../middleware/rateLimiters')
+const { resetPasswordLimiter } = require('../middleware/rateLimiters')
 
 
 // ===== Register =====
 // routes/user.routes.js
-const {sendVerificationEmail, resetPasswordEmail} = require('../utils/emailService');
+const { sendVerificationEmail, resetPasswordEmail } = require('../utils/emailService');
 const jwt = require('jsonwebtoken');
 
 router.post('/register', async (req, res) => {
@@ -210,7 +210,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
   }
 
   const userId = req.user.id;
-  const { name, phone, profile_pic, password } = req.body;
+  const { name, phone, profile_pic, email } = req.body;
 
   try {
     const updates = [];
@@ -226,15 +226,25 @@ router.put('/profile', authenticateToken, async (req, res) => {
       values.push(phone);
     }
 
+    if (email) {
+      // check if email already exists in another record
+      const [existing] = await db.query(
+        'SELECT id FROM users WHERE email = ?',
+        [email]
+      );
+
+      if (existing.length > 0) {
+        return res.status(400).json({ message: 'Email already exists' });
+      }
+
+      updates.push('email = ?');
+      values.push(email);
+    }
+
+
     if (profile_pic) {
       updates.push('profile_pic = ?');
       values.push(profile_pic);
-    }
-
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updates.push('password = ?');
-      values.push(hashedPassword);
     }
 
     if (updates.length === 0) {
@@ -248,7 +258,124 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Profile updated successfully' });
   } catch (err) {
-    console.error('User profile update error:', err);
+    res.status(500).json({ message: `${err}` });
+
+  }
+});
+
+// ====== Resend Verification =========
+router.post('/resend-verification', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = users[0];
+
+    if (user.is_verified) {
+      return res.status(400).json({ message: 'Account is already verified' });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: 'user' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    await sendVerificationEmail(user.email, token, 'user');
+
+    res.json({ message: 'Verification email resent. Please check your inbox.' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
+
+  const { email } = req.body;
+
+  try {
+    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'Email not found' });
+    }
+
+    const user = users[0];
+
+    let token, hashedToken, existing;
+
+    /**
+       * Generate a unique and secure reset token.
+       * 
+       * Even though crypto.randomBytes(32) is already secure and extremely unlikely to produce duplicates,
+       * ÷ use a while loop to check against existing tokens in the database — just in case.
+       * 
+       * For security reasons, ÷ store only the SHA-256 hash of the token in the database.
+       * This way, even if the database is compromised, an attacker cannot use the token to reset the password.
+       * 
+       * The original token (in plain text) will be sent to the user via email and used for verification later.
+    */
+
+    do {
+      token = crypto.randomBytes(32).toString('hex');
+      hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+      [existing] = await db.query('SELECT id FROM users WHERE reset_token = ?', [hashedToken]);
+    } while (existing.length > 0);
+
+    const expiry = new Date(Date.now() + 3600000);
+
+    await db.query('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ? and email = ?', [
+      hashedToken,
+      expiry,
+      user.id,
+      email,
+    ]);
+
+    await resetPasswordEmail(email, token, 'user');
+
+    res.json({ message: 'Password reset link sent to email' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== Change user password (self) =====
+router.post('/update-password', resetPasswordLimiter, authenticateToken, async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const userId = req.user.id;
+
+  if (!userId || !oldPassword || !newPassword) {
+    return res.status(400).json({ message: 'old password, and new password are required' });
+  }
+
+  try {
+    const [users] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = users[0];
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Old password is incorrect' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await db.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('Update password error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -305,90 +432,6 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
     res.json({ message: 'User updated successfully' });
   } catch (err) {
     console.error('Admin update user error:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// ====== Resend Verification =========
-router.post('/resend-verification', async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-
-    if (users.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const user = users[0];
-
-    if (user.is_verified) {
-      return res.status(400).json({ message: 'Account is already verified' });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: 'user' },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-
-    await sendVerificationEmail(user.email, token, 'user');
-
-    res.json({ message: 'Verification email resent. Please check your inbox.' });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
-
-  const { email } = req.body;
-
-  try {
-    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-
-    if (users.length === 0) {
-      return res.status(404).json({ message: 'Email not found' });
-    }
-
-    const user = users[0];
-
-    let token, hashedToken, existing;
-
- /**
-    * Generate a unique and secure reset token.
-    * 
-    * Even though crypto.randomBytes(32) is already secure and extremely unlikely to produce duplicates,
-    * ÷ use a while loop to check against existing tokens in the database — just in case.
-    * 
-    * For security reasons, ÷ store only the SHA-256 hash of the token in the database.
-    * This way, even if the database is compromised, an attacker cannot use the token to reset the password.
-    * 
-    * The original token (in plain text) will be sent to the user via email and used for verification later.
- */
-
-    do {
-      token = crypto.randomBytes(32).toString('hex');
-      hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-      [existing] = await db.query('SELECT id FROM users WHERE reset_token = ?', [hashedToken]);
-    } while (existing.length > 0);
-
-    const expiry = new Date(Date.now() + 3600000);
-
-    await db.query('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ? and email = ?', [
-      hashedToken,
-      expiry,
-      user.id,
-      email,
-    ]);
-
-    await resetPasswordEmail(email, token, 'user');
-
-    res.json({ message: 'Password reset link sent to email' });
-  } catch (err) {
-    console.error('Forgot password error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

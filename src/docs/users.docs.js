@@ -1,5 +1,3 @@
-// 📁 src/docs/users.docs.js
-
 /**
  * @swagger
  * /users/register:
@@ -33,12 +31,11 @@
 
 /**
  * @swagger
- * /login:
+ * /users/login:
  *   post:
  *     summary: User login
- *     description: Authenticates a user with email and password, returns a JWT token on success.
- *     tags:
- *       - Authentication
+ *     description: Authenticate a user with email and password. Returns a JWT token if credentials are valid and the email is verified.
+ *     tags: [Users]
  *     requestBody:
  *       required: true
  *       content:
@@ -52,11 +49,11 @@
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
+ *                 example: "user@example.com"
  *               password:
  *                 type: string
  *                 format: password
- *                 example: mySecurePassword123
+ *                 example: "mypassword123"
  *     responses:
  *       200:
  *         description: Login successful
@@ -67,10 +64,10 @@
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Login successful
+ *                   example: "Login successful"
  *                 token:
  *                   type: string
- *                   description: JWT token
+ *                   description: JWT token for authenticated requests
  *                 user:
  *                   type: object
  *                   properties:
@@ -79,33 +76,17 @@
  *                       example: 1
  *                     name:
  *                       type: string
- *                       example: John Doe
+ *                       example: "Ahmed Alaa"
  *                     email:
  *                       type: string
- *                       example: user@example.com
+ *                       example: "user@example.com"
  *                     pfp:
  *                       type: string
- *                       example: https://example.com/profile.jpg
+ *                       example: "https://example.com/avatar.png"
  *       400:
  *         description: Invalid email or password
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Invalid email or password
  *       401:
  *         description: Email not verified
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Please verify your email first
  *       500:
  *         description: Server error
  */
@@ -295,10 +276,10 @@
  *               password:
  *                 type: string
  *             example:
- *               name: Ahmed Ali
+ *               name: "Ahmed Ala`a"
  *               phone: "01123456789"
+ *               email: "aa@aa.com"
  *               profile_pic: "https://example.com/profile.jpg"
- *               password: "newpassword123"
  *     responses:
  *       200:
  *         description: Profile updated successfully
@@ -368,6 +349,7 @@
  *         description: Server error
  */
 
+
 /**
  * @swagger
  * /users/reset-password:
@@ -429,4 +411,46 @@
  *                 message:
  *                   type: string
  *                   example: Server error
+ */
+
+/**
+ * @swagger
+ * /users/update-password:
+ *   post:
+ *     summary: Change logged-in user's password
+ *     description: Only users with role "user" can change their own password.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: "oldPassword123"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: "newStrongPassword456"
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Old password is incorrect or missing fields
+ *       401:
+ *         description: Unauthorized (no token provided)
+ *       403:
+ *         description: Forbidden (only users can change their passwords)
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */

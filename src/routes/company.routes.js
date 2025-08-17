@@ -7,8 +7,13 @@ const authenticateToken = require('../middleware/auth');
 
 const jwt = require('jsonwebtoken');
 const sendAgreementFile = require('../utils/agreementFile');
-const sendVerificationEmail = require('../utils/emailService')
 const authorizeAdmin = require('../middleware/authorizeAdmin')
+const crypto = require('crypto')
+const { resetPasswordLimiter } = require('../middleware/rateLimiters')
+const { sendVerificationEmail, resetPasswordEmail } = require('../utils/emailService');
+
+
+
 
 // ===== Register =====
 router.post('/register', async (req, res) => {
@@ -63,7 +68,6 @@ router.post('/login', async (req, res) => {
 
     const company = companyResult[0];
 
-
     if (!company.is_verified) {
       return res.status(401).json({ message: 'Please verify your account first' });
     }
@@ -93,7 +97,7 @@ router.post('/login', async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: err });
   }
 });
 
@@ -192,6 +196,171 @@ router.delete('/:id', authenticateToken, authorizeAdmin(['superadmin']), async (
   }
 });
 
+// PUT /companies/profile
+router.put('/profile', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'company') {
+    return res.status(403).json({ message: 'Only company can update their profile' });
+  }
+
+  const companyId = req.user.id;
+  const { name, phone, profile_pic, email } = req.body;
+
+  try {
+    const updates = [];
+    const values = [];
+
+    if (name) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+
+    if (phone) {
+      updates.push('phone = ?');
+      values.push(phone);
+    }
+
+    if (email) {
+      // check if email already exists in another record
+      const [existing] = await db.query(
+        'SELECT id FROM companies WHERE email = ?',
+        [email]
+      );
+
+      if (existing.length > 0) {
+        return res.status(400).json({ message: 'Email already exists' });
+      }
+
+      updates.push('email = ?');
+      values.push(email);
+    }
+
+
+    if (profile_pic) {
+      updates.push('profile_pic = ?');
+      values.push(profile_pic);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    const sql = `UPDATE companies SET ${updates.join(', ')} WHERE id = ?`;
+    values.push(companyId);
+
+    await db.query(sql, values);
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (err) {
+    res.status(500).json({ message: `${err}` });
+  }
+});
+
+
+router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
+
+  const { email } = req.body;
+
+  try {
+    const [companies] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
+
+    if (companies.length === 0) {
+      return res.status(404).json({ message: 'Email not found' });
+    }
+
+    const company = companies[0];
+
+    let token, hashedToken, existing;
+
+    do {
+      token = crypto.randomBytes(32).toString('hex');
+      hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+      [existing] = await db.query('SELECT id FROM companies WHERE reset_token = ?', [hashedToken]);
+    } while (existing.length > 0);
+
+    const expiry = new Date(Date.now() + 3600000);
+
+    await db.query('UPDATE companies SET reset_token = ?, reset_token_expiry = ? WHERE id = ? and email = ?', [
+      hashedToken,
+      expiry,
+      user.id,
+      email,
+    ]);
+
+    await resetPasswordEmail(email, token, 'company');
+
+    res.json({ message: 'Password reset link sent to email' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== Change company password (self) =====
+router.post('/update-password', resetPasswordLimiter, authenticateToken, async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const companyId = req.user.id;
+
+  if (!companyId || !oldPassword || !newPassword) {
+    return res.status(400).json({ message: 'old password and new password are required' });
+  }
+
+  try {
+    const [companies] = await db.query('SELECT * FROM companies WHERE id = ?', [companyId]);
+    if (companies.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const company = companies[0];
+
+    const isMatch = await bcrypt.compare(oldPassword, company.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Old password is incorrect' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await db.query('UPDATE companies SET password = ? WHERE id = ?', [hashedPassword, userId]);
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('Update password error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ====== Resend Verification =========
+// router.post('/resend-verification', async (req, res) => {
+//   const { email } = req.body;
+
+//   try {
+//     const [companies] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
+
+//     if (companies.length === 0) {
+//       return res.status(404).json({ message: 'Company not found' });
+//     }
+
+//     const company = companies[0];
+
+//     if (company.is_verified) {
+//       return res.status(400).json({ message: 'Company is already verified' });
+//     }
+
+//     const token = jwt.sign(
+//       { id: company.id, email: company.email, role: 'company' },
+//       process.env.JWT_SECRET,
+//       { expiresIn: '1h' }
+//     );
+
+//     await sendVerificationEmail(company.email, token, 'company');
+
+//     res.json({ message: 'Verification email resent. Please check your inbox.' });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// });
+
 // PUT /companies/:id (admin only)
 router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
   const companyId = parseInt(req.params.id);
@@ -246,88 +415,5 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-// PUT /companies/self
-router.put('/self', authenticateToken, async (req, res) => {
-  if (req.user.role !== 'company') {
-    return res.status(403).json({ message: 'Only companies can access this route' });
-  }
-
-  const companyId = req.user.id;
-  const { name, email, phone, password } = req.body;
-
-  const updates = [];
-  const values = [];
-
-  try {
-    if (name) {
-      updates.push('name = ?');
-      values.push(name);
-    }
-
-    if (email) {
-      updates.push('email = ?');
-      values.push(email);
-    }
-
-    if (phone) {
-      updates.push('phone = ?');
-      values.push(phone);
-    }
-
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updates.push('password = ?');
-      values.push(hashedPassword);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({ message: 'No fields to update' });
-    }
-
-    const sql = `UPDATE companies SET ${updates.join(', ')} WHERE id = ?`;
-    values.push(companyId);
-
-    await db.query(sql, values);
-    res.json({ message: 'Company profile updated successfully' });
-
-  } catch (err) {
-    console.error('Company self update error:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// ====== Resend Verification =========
-// router.post('/resend-verification', async (req, res) => {
-//   const { email } = req.body;
-
-//   try {
-//     const [companies] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
-
-//     if (companies.length === 0) {
-//       return res.status(404).json({ message: 'Company not found' });
-//     }
-
-//     const company = companies[0];
-
-//     if (company.is_verified) {
-//       return res.status(400).json({ message: 'Company is already verified' });
-//     }
-
-//     const token = jwt.sign(
-//       { id: company.id, email: company.email, role: 'company' },
-//       process.env.JWT_SECRET,
-//       { expiresIn: '1h' }
-//     );
-
-//     await sendVerificationEmail(company.email, token, 'company');
-
-//     res.json({ message: 'Verification email resent. Please check your inbox.' });
-
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
 
 module.exports = router;
