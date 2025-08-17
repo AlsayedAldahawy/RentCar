@@ -319,7 +319,7 @@ router.post('/update-password', resetPasswordLimiter, authenticateToken, async (
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await db.query('UPDATE companies SET password = ? WHERE id = ?', [hashedPassword, userId]);
+    await db.query('UPDATE companies SET password = ? WHERE id = ?', [hashedPassword, companyId]);
 
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
