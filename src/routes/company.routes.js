@@ -91,7 +91,7 @@ router.post('/login', async (req, res) => {
         id: company.id,
         name: company.name,
         email: company.email,
-        phone: company.phone
+        pfp: company.profile_pic
       }
     });
 
