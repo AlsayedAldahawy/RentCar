@@ -292,3 +292,36 @@
  *       500:
  *         description: Server error
  */
+
+/**
+ * @swagger
+ * /admins/role:
+ *   get:
+ *     summary: Get all admin roles
+ *     description: Retrieve a list of all roles available for admins.
+ *     tags: [Admins]
+ *     responses:
+ *       200:
+ *         description: A list of admin roles
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 roles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       role:
+ *                         type: string
+ *                         example: "Super Admin"
+ *       500:
+ *         description: Server error
+ */

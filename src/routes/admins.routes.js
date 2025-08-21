@@ -231,11 +231,15 @@ router.get('/role', async (req, res)=>{
        FROM admin_role`,
     );
 
-    res.json({
+     res.json({
+      success: true,
       roles,
     });
   } catch (err) {
-    res.status(500).json({ message: `${err}` });
+    res.status(500).json({ 
+      success: false,
+      message: err.message 
+    });
   }
 })
 router.get('/:id', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
