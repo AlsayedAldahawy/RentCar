@@ -96,3 +96,9 @@ CREATE TABLE car_galary (
   FOREIGN KEY (car_id) REFERENCES cars(id)
 );
 
+CREATE TABLE admin_role (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  role VARCHAR(30) NOT NULL
+);
+
+insert into admin_role(role) values("superadmin"), ('moderator');

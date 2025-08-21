@@ -224,6 +224,20 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
   }
 });
 
+router.get('/role', async (req, res)=>{
+  try {
+    const [roles] = await db.query(
+      `SELECT id, role
+       FROM admin_role`,
+    );
+
+    res.json({
+      roles,
+    });
+  } catch (err) {
+    res.status(500).json({ message: `${err}` });
+  }
+})
 router.get('/:id', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
   const adminId = req.params.id;
 
@@ -238,5 +252,8 @@ router.get('/:id', authenticateToken, authorizeAdmin(['superadmin']), async (req
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+
+
 
 module.exports = router;

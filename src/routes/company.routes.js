@@ -260,8 +260,6 @@ router.post('/reset-password', async (req, res) => {
 
   const { email } = req.body;
 
-  console.log("email: ",email)
-
   try {
     const [companies] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
 
