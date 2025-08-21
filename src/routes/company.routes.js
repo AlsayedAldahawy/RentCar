@@ -260,6 +260,8 @@ router.post('/reset-password', async (req, res) => {
 
   const { email } = req.body;
 
+  console.log("email: ",email)
+
   try {
     const [companies] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
 
@@ -282,7 +284,7 @@ router.post('/reset-password', async (req, res) => {
     await db.query('UPDATE companies SET reset_token = ?, reset_token_expiry = ? WHERE id = ? and email = ?', [
       hashedToken,
       expiry,
-      user.id,
+      company.id,
       email,
     ]);
 
