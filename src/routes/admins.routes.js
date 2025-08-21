@@ -224,7 +224,7 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
   }
 });
 
-router.get('/role', async (req, res)=>{
+router.get('/role',authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res)=>{
   try {
     const [roles] = await db.query(
       `SELECT id, role
