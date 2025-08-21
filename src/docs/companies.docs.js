@@ -230,6 +230,7 @@
  * /companies/profile:
  *   put:
  *     summary: Update logged-in company's profile
+ *     description: Update company profile information. Each field has a maximum length restriction.
  *     tags: [Companies]
  *     security:
  *       - bearerAuth: []
@@ -242,26 +243,42 @@
  *             properties:
  *               name:
  *                 type: string
+ *                 maxLength: 100
+ *                 example: "Ahmed Ala`a"
  *               phone:
  *                 type: string
+ *                 maxLength: 20
+ *                 example: "01123456789"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 maxLength: 100
+ *                 example: "aa@aa.com"
  *               profile_pic:
  *                 type: string
- *               password:
+ *                 maxLength: 255
+ *                 example: "https://example.com/profile.jpg"
+ *               address:
  *                 type: string
- *             example:
- *               name: "Ahmed Ala`a"
- *               phone: "01123456789"
- *               email: "aa@aa.com"
- *               profile_pic: "https://example.com/profile.jpg"
+ *                 maxLength: 150
+ *                 example: "123 Street, Cairo"
+ *               city:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: "Cairo"
+ *               region:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: "Giza"
  *     responses:
  *       200:
  *         description: Profile updated successfully
  *       400:
- *         description: No fields to update
+ *         description: Validation failed (e.g. field too long or no fields to update)
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized (missing or invalid token)
  *       403:
- *         description: Only users can update their profile
+ *         description: Only company users can update their profile
  *       500:
  *         description: Server error
  */

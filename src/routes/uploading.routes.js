@@ -33,11 +33,11 @@ router.post('/car/:carId', authenticateToken, uploadCarImage.single('image'), as
     res.json({ message: 'Car image uploaded', imageUrl });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: err.message})
   }
 });
 
-// 👤 Upload user profile image
+// Upload user profile image
 router.post('/user', authenticateToken, uploadUserImage.single('image'), async (req, res) => {
   const userId = req.user.id;
   const filePath = req.file.path;
@@ -48,11 +48,11 @@ router.post('/user', authenticateToken, uploadUserImage.single('image'), async (
     res.json({ message: 'User profile image uploaded', imageUrl });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: rr.message})
   }
 });
 
-// 🏢 Upload company profile image
+// Upload company profile image
 router.post('/company', authenticateToken, uploadCompanyImage.single('image'), async (req, res) => {
   const companyId = req.user.id;
   const filePath = req.file.path;
@@ -63,11 +63,11 @@ router.post('/company', authenticateToken, uploadCompanyImage.single('image'), a
     res.json({ message: 'Company profile image uploaded', imageUrl });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: err.message})
   }
 });
 
-// 🛡️ Upload admin profile image
+// Upload admin profile image
 router.post('/admin', authenticateToken, uploadAdminImage.single('image'), async (req, res) => {
   const adminId = req.user.id;
   const filePath = req.file.path;
@@ -78,7 +78,7 @@ router.post('/admin', authenticateToken, uploadAdminImage.single('image'), async
     res.json({ message: 'Admin profile image uploaded', imageUrl });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: err.message})
   }
 });
 

@@ -107,3 +107,7 @@ insert into admin_role(role) values("superadmin"), ('moderator');
 ALTER TABLE admins
 ADD COLUMN profile_pic VARCHAR(255),
 ADD COLUMN phone VARCHAR(15);
+
+
+alter table companies add column address varchar(150);
+alter table companies add column (city varchar(100), region varchar(100));

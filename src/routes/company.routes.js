@@ -203,27 +203,40 @@ router.put('/profile', authenticateToken, async (req, res) => {
   }
 
   const companyId = req.user.id;
-  const { name, phone, profile_pic, email } = req.body;
+  const { name, phone, profile_pic, email, address, city, region} = req.body;
 
   try {
     const updates = [];
     const values = [];
 
+    // name
     if (name) {
+      if (name.length > 100) {
+        throw new Error("Company name cannot exceed 100 characters");
+      }
       updates.push('name = ?');
       values.push(name);
     }
 
+    // phone
     if (phone) {
+      if (phone.length > 20) {
+        throw new Error("Phone number cannot exceed 20 characters");
+      }
       updates.push('phone = ?');
       values.push(phone);
     }
 
+    // email
     if (email) {
+      if (email.length > 100) {
+        throw new Error("Email cannot exceed 100 characters");
+      }
+
       // check if email already exists in another record
       const [existing] = await db.query(
-        'SELECT id FROM companies WHERE email = ?',
-        [email]
+        'SELECT id FROM companies WHERE email = ? AND id <> ?',
+        [email, companyId]
       );
 
       if (existing.length > 0) {
@@ -234,8 +247,38 @@ router.put('/profile', authenticateToken, async (req, res) => {
       values.push(email);
     }
 
+    // address
+    if (address) {
+      if (address.length > 150) {
+        throw new Error("Address cannot exceed 150 characters");
+      }
+      updates.push('address = ?');
+      values.push(address);
+    }
 
+    // city
+    if (city) {
+      if (city.length > 100) {
+        throw new Error("City cannot exceed 100 characters");
+      }
+      updates.push('city = ?');
+      values.push(city);
+    }
+
+    // region 
+    if (region) {
+      if (region.length > 100) {
+        throw new Error("Region cannot exceed 100 characters");
+      }
+      updates.push('region = ?');
+      values.push(region);
+    }
+
+    // profile_pic
     if (profile_pic) {
+      if (profile_pic.length > 255) {
+        throw new Error("Profile picture path cannot exceed 255 characters");
+      }
       updates.push('profile_pic = ?');
       values.push(profile_pic);
     }
@@ -251,9 +294,10 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Profile updated successfully' });
   } catch (err) {
-    res.status(500).json({ message: `${err}` });
+    res.status(400).json({ message: err.message });
   }
 });
+
 
 
 router.post('/reset-password', async (req, res) => {
