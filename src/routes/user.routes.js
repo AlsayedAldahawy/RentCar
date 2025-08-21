@@ -296,7 +296,7 @@ router.post('/resend-verification', async (req, res) => {
   }
 });
 
-router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
+router.post('/reset-password', async (req, res) => {
 
   const { email } = req.body;
 
@@ -348,7 +348,7 @@ router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
 });
 
 // ===== Change user password (self) =====
-router.post('/update-password', resetPasswordLimiter, authenticateToken, async (req, res) => {
+router.post('/update-password',authenticateToken, async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const userId = req.user.id;
 
