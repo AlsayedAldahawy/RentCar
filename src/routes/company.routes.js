@@ -500,10 +500,20 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
 
 // PUT /companies/status/:id (admin only)
 router.put('/status/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
-  const companyId = parseInt(req.params.id);
+  const companyId = parseInt(req.params.id, 10);
   const { status } = req.body;
 
+   
   try {
+    if (isNaN(companyId)) {
+      throw new Error("Company's id is a must")
+    }
+
+    const rows = await db.query(`SELECT name FROM companies where id=${companyId}`)
+    if (rows[0].length < 1) {
+      throw new Error("Invalid id")
+    }
+
     const allowedStatus = ['active', 'inactive', 'pending', 'suspended', 'deleted', 'rejected'];
     if (!allowedStatus.includes(status)) {
       return res.status(400).json({ message: 'Invalid status value' });
@@ -528,6 +538,16 @@ router.put('/verify/:id', authenticateToken, authorizeAdmin(['superadmin', 'mode
     const allowedValues = [true, false];
     if (!allowedValues.includes(verify)) {
       return res.status(400).json({ message: 'Invalid value' });
+    }
+
+    if (isNaN(companyId)) {
+      throw new Error("Company's id is a must")
+    }
+
+    const rows = await db.query(`SELECT name FROM companies where id=${companyId}`)
+
+    if (rows[0].length < 1) {
+      throw new Error("Invalid id")
     }
 
     const sql = `UPDATE companies SET is_verified= ? WHERE id = ?`;
