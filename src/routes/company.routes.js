@@ -498,4 +498,45 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
   }
 });
 
+// PUT /companies/status/:id (admin only)
+router.put('/status/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
+  const companyId = parseInt(req.params.id);
+  const { status } = req.body;
+
+  try {
+    const allowedStatus = ['active', 'inactive', 'pending', 'suspended', 'deleted', 'rejected'];
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
+
+    const sql = `UPDATE companies SET status= ? WHERE id = ?`;
+    await db.query(sql, [status, companyId]);
+    res.json({ message: "Company's status updated successfully" });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+// PUT /companies/verify/:id (admin only)
+router.put('/verify/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
+  const companyId = parseInt(req.params.id);
+  const { verify } = req.body;
+
+  try {
+    const allowedValues = [true, false];
+    if (!allowedValues.includes(verify)) {
+      return res.status(400).json({ message: 'Invalid value' });
+    }
+
+    const sql = `UPDATE companies SET is_verified= ? WHERE id = ?`;
+    await db.query(sql, [verify, companyId]);
+    res.json({ message: "Company's status updated successfully" });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

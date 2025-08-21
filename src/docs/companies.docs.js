@@ -342,6 +342,89 @@
  *           example: "active"
  */
 
+/**
+ * @swagger
+ * /companies/status/{id}:
+ *   put:
+ *     summary: Update a company's status (Admin only)
+ *     tags: [Companies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Company ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [active, inactive, pending, suspended, deleted, rejected]
+ *             example:
+ *               status: "active"
+ *     responses:
+ *       200:
+ *         description: Company's status updated successfully
+ *       400:
+ *         description: Invalid status value
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - only admins allowed
+ *       404:
+ *         description: Company not found
+ *       500:
+ *         description: Server error
+ */
+
+/**
+ * @swagger
+ * /companies/verify/{id}:
+ *   put:
+ *     summary: Verify/unverify a company (Admin only)
+ *     tags: [Companies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Company ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               verify:
+ *                 type: boolean
+ *             example:
+ *               verify: true
+ *     responses:
+ *       200:
+ *         description: Company's verification status updated successfully
+ *       400:
+ *         description: Invalid value
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - only admins allowed
+ *       404:
+ *         description: Company not found
+ *       500:
+ *         description: Server error
+ */
+
 
 /**
  * @swagger
