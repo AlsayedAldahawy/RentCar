@@ -8,6 +8,8 @@ const bookingRoutes = require('./routes/booking.routes');
 const uploadRoutes = require('./routes/uploading.routes')
 const verifyRoutes = require('./routes/verify.routes');
 const resetRoutes = require('./routes/reset.routes')
+const transmissionRoutes = require('./routes/transmission.routes')
+const fuelRoutes = require('./routes/fuel.routes')
 
 const cors = require("cors");
 
@@ -30,6 +32,10 @@ app.use('/api/upload', uploadRoutes);
 
 app.use('/api/verify', verifyRoutes);
 app.use('/api/reset', resetRoutes);
+
+app.use('/api/transmission', transmissionRoutes);
+app.use('/api/fuel', fuelRoutes);
+
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

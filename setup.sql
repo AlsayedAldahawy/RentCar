@@ -102,3 +102,8 @@ CREATE TABLE admin_role (
 );
 
 insert into admin_role(role) values("superadmin"), ('moderator');
+
+
+ALTER TABLE admins
+ADD COLUMN profile_pic VARCHAR(255),
+ADD COLUMN phone VARCHAR(15);
