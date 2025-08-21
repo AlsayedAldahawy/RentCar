@@ -5,7 +5,7 @@ const db = require('../config/db');
 router.get('/', async(req, res)=>{
     try {
         
-        const q = `SELECT * FROM transmissions ORDER BY id`
+        const q = `SELECT * FROM transmission ORDER BY id`
         const [transmission_types] = await db.query(q);
 
         res.json({
