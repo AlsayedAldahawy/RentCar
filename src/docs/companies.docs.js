@@ -168,6 +168,65 @@
  *         description: Server error
  */
 
+/**
+ * @swagger
+ * /companies/admin/{id}:
+ *   get:
+ *     summary: Get company details by ID (Admins only)
+ *     tags: [Companies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Company ID
+ *     responses:
+ *       200:
+ *         description: Company details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 company:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     profile_pic:
+ *                       type: string
+ *                     address:
+ *                       type: string
+ *                     city:
+ *                       type: string
+ *                     region:
+ *                       type: string
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                     is_verified:
+ *                       type: boolean
+ *                     status:
+ *                       type: string
+ *       401:
+ *         description: Unauthorized (missing or invalid token)
+ *       403:
+ *         description: Forbidden (only admins can access this endpoint)
+ *       404:
+ *         description: Company not found
+ *       500:
+ *         description: Server error
+ */
+
 
 /**
  * @swagger

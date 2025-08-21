@@ -156,6 +156,23 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
+// Get company by ID (For Admins only)
+router.get('/admin/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
+  const companyId = req.params.id;
+
+  try {
+    const [rows] = await db.query('SELECT id, name, email, phone, profile_pic, address, city, region, created_at, is_verified, status FROM companies WHERE id = ?', [companyId]);
+
+    if (rows.length === 0) return res.status(404).json({ message: 'Company not found' });
+
+    res.json({ company: rows[0] });
+  } catch (err) {
+    console.error('Get company error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get all companies with pagination
 router.get('/', authenticateToken, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
