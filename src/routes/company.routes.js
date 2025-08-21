@@ -145,29 +145,36 @@ router.get('/:id', async (req, res) => {
   const companyId = req.params.id;
 
   try {
-    const [rows] = await db.query('SELECT id, name, email, phone, status, profile_pic FROM companies WHERE id = ?', [companyId]);
+    const [rows] = await db.query('SELECT name, email, phone, status, profile_pic, address, city, region FROM companies WHERE id = ?', [companyId]);
 
     if (rows.length === 0) return res.status(404).json({ message: 'Company not found' });
 
     res.json({ company: rows[0] });
   } catch (err) {
     console.error('Get company error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: err.message });
   }
 });
 
 // Get all companies with pagination
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
 
-  try {
-    const [rows] = await db.query(
-      `SELECT id, name, email, phone, status, profile_pic FROM companies
+  let q = '';
+  if (req.user.type === 'admin') {
+    q = `SELECT id, name, email, phone, profile_pic, address, city, region, created_at, is_verified, status FROM companies
        ORDER BY id DESC
-       LIMIT ? OFFSET ?`,
-      [limit, offset]
+       LIMIT ? OFFSET ?`
+  } else {
+    q = `SELECT name, email, phone, profile_pic FROM companies
+       ORDER BY id DESC
+       LIMIT ? OFFSET ?`
+  }
+
+  try {
+    const [rows] = await db.query(q, [limit, offset]
     );
 
     const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM companies');
@@ -187,7 +194,7 @@ router.get('/', async (req, res) => {
     });
   } catch (err) {
     console.error('Get companies error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -217,7 +224,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
   }
 
   const companyId = req.user.id;
-  const { name, phone, profile_pic, email, address, city, region} = req.body;
+  const { name, phone, profile_pic, email, address, city, region } = req.body;
 
   try {
     const updates = [];

@@ -118,6 +118,7 @@
  * /companies/{id}:
  *   get:
  *     summary: Get company by ID
+ *     description: Retrieve public profile information of a company by its ID.
  *     tags: [Companies]
  *     parameters:
  *       - in: path
@@ -125,34 +126,74 @@
  *         required: true
  *         schema:
  *           type: integer
- *         description: Company ID
+ *         description: ID of the company
  *     responses:
  *       200:
- *         description: Company profile retrieved
+ *         description: Company profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 company:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                       example: "Ahmed Ala`a"
+ *                     email:
+ *                       type: string
+ *                       example: "aa@aa.com"
+ *                     phone:
+ *                       type: string
+ *                       example: "01123456789"
+ *                     status:
+ *                       type: string
+ *                       example: "active"
+ *                     profile_pic:
+ *                       type: string
+ *                       example: "https://example.com/profile.jpg"
+ *                     address:
+ *                       type: string
+ *                       example: "123 Street, Cairo"
+ *                     city:
+ *                       type: string
+ *                       example: "Cairo"
+ *                     region:
+ *                       type: string
+ *                       example: "Giza"
  *       404:
  *         description: Company not found
+ *       500:
+ *         description: Server error
  */
+
 
 /**
  * @swagger
  * /companies:
  *   get:
- *     summary: Get all companies with pagination
+ *     summary: Get list of companies
+ *     description: Retrieve a paginated list of companies. Admins will see all details, while normal users will see limited public info.
  *     tags: [Companies]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number (default is 1)
+ *           default: 1
+ *         description: Page number for pagination
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Number of results per page (default is 10)
+ *           default: 10
+ *         description: Number of companies per page
  *     responses:
  *       200:
- *         description: List of companies
+ *         description: Paginated list of companies
  *         content:
  *           application/json:
  *             schema:
@@ -161,33 +202,87 @@
  *                 companies:
  *                   type: array
  *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: integer
- *                       name:
- *                         type: string
- *                       email:
- *                         type: string
- *                         format: email
- *                       phone:
- *                         type: string
+ *                     oneOf:
+ *                       - $ref: '#/components/schemas/CompanyAdmin'
+ *                       - $ref: '#/components/schemas/CompanyPublic'
  *                 pagination:
  *                   type: object
  *                   properties:
  *                     total:
  *                       type: integer
+ *                       example: 35
  *                     page:
  *                       type: integer
+ *                       example: 1
  *                     pageSize:
  *                       type: integer
+ *                       example: 10
  *                     totalPages:
  *                       type: integer
+ *                       example: 4
+ *       401:
+ *         description: Unauthorized
  *       404:
  *         description: No companies found
  *       500:
  *         description: Server error
+ *
+ * components:
+ *   schemas:
+ *     CompanyPublic:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: "Ahmed Ala`a"
+ *         email:
+ *           type: string
+ *           example: "aa@aa.com"
+ *         phone:
+ *           type: string
+ *           example: "01123456789"
+ *         profile_pic:
+ *           type: string
+ *           example: "https://example.com/profile.jpg"
+ *     CompanyAdmin:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           example: 12
+ *         name:
+ *           type: string
+ *           example: "Ahmed Ala`a"
+ *         email:
+ *           type: string
+ *           example: "aa@aa.com"
+ *         phone:
+ *           type: string
+ *           example: "01123456789"
+ *         profile_pic:
+ *           type: string
+ *           example: "https://example.com/profile.jpg"
+ *         address:
+ *           type: string
+ *           example: "123 Street, Cairo"
+ *         city:
+ *           type: string
+ *           example: "Cairo"
+ *         region:
+ *           type: string
+ *           example: "Giza"
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2025-08-20T12:34:56Z"
+ *         is_verified:
+ *           type: boolean
+ *           example: true
+ *         status:
+ *           type: string
+ *           example: "active"
  */
+
 
 /**
  * @swagger
