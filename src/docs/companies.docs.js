@@ -56,18 +56,62 @@
  * @swagger
  * /companies/profile:
  *   get:
- *     summary: Get logged-in company profile
+ *     summary: Get logged-in company's profile
+ *     description: Retrieve full profile details for the authenticated company.
  *     tags: [Companies]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Company profile data
+ *         description: Company profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 profile:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "Ahmed Ala`a"
+ *                     email:
+ *                       type: string
+ *                       example: "aa@aa.com"
+ *                     phone:
+ *                       type: string
+ *                       example: "01123456789"
+ *                     status:
+ *                       type: string
+ *                       example: "active"
+ *                     profile_pic:
+ *                       type: string
+ *                       example: "https://example.com/profile.jpg"
+ *                     address:
+ *                       type: string
+ *                       example: "123 Street, Cairo"
+ *                     city:
+ *                       type: string
+ *                       example: "Cairo"
+ *                     region:
+ *                       type: string
+ *                       example: "Giza"
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized (missing or invalid token)
+ *       403:
+ *         description: Only companies can access this profile
  *       404:
  *         description: Company not found
+ *       500:
+ *         description: Server error
  */
+
 
 /**
  * @swagger

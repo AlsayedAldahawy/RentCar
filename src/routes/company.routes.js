@@ -103,14 +103,24 @@ router.post('/login', async (req, res) => {
 
 // ===== Protected Profile Route =====
 router.get('/profile', authenticateToken, async (req, res) => {
-  // Optional: check if role is company
   if (req.user.role !== 'company') {
     return res.status(403).json({ message: 'Only companies can access this profile' });
   }
 
   try {
     const [result] = await db.query(
-      'SELECT id, name, email, phone, status, profile_pic FROM companies WHERE id = ?',
+      `SELECT 
+        id,
+        name,
+        email,
+        phone,
+        status,
+        profile_pic,
+        address,
+        city,
+        region
+       FROM companies 
+       WHERE id = ?`,
       [req.user.id]
     );
 
@@ -118,13 +128,17 @@ router.get('/profile', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Company not found' });
     }
 
-    res.json({ profile: result[0] });
+    res.json({
+      success: true,
+      profile: result[0]
+    });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 // Get company by ID (profile public view)
 router.get('/:id', async (req, res) => {
