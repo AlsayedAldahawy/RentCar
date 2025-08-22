@@ -464,8 +464,10 @@
  * @swagger
  * /companies/{id}:
  *   put:
- *     summary: Admin updates any company (including status)
- *     tags: [Companies]
+ *     summary: Update a company's profile
+ *     description: Updates the company's information. Requires authentication and `superadmin` or `moderator` role.
+ *     tags:
+ *       - Companies
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -474,7 +476,7 @@
  *         required: true
  *         schema:
  *           type: integer
- *         description: Company ID to update
+ *         description: ID of the company to update.
  *     requestBody:
  *       required: true
  *       content:
@@ -484,26 +486,54 @@
  *             properties:
  *               name:
  *                 type: string
- *               email:
- *                 type: string
- *                 format: email
+ *                 maxLength: 100
+ *                 description: Company name.
  *               phone:
  *                 type: string
- *               password:
+ *                 maxLength: 20
+ *                 description: Company phone number.
+ *               email:
  *                 type: string
- *               status:
+ *                 maxLength: 100
+ *                 format: email
+ *                 description: Company email (must be unique).
+ *               address:
  *                 type: string
- *                 enum: [active, inactive, pending, suspended, deleted, rejected]
- *                 description: Only admins can change the status
+ *                 maxLength: 150
+ *                 description: Company address.
+ *               city:
+ *                 type: string
+ *                 maxLength: 100
+ *                 description: Company city.
+ *               region:
+ *                 type: string
+ *                 maxLength: 100
+ *                 description: Company region.
  *     responses:
  *       200:
- *         description: Company updated successfully
+ *         description: Profile updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
  *       400:
- *         description: No fields to update or invalid status
+ *         description: Bad request (validation error, duplicate email, or no fields provided).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Email already exists
+ *       401:
+ *         description: Unauthorized (missing or invalid token).
  *       403:
- *         description: Unauthorized
- *       500:
- *         description: Server error
+ *         description: Forbidden (user doesn't have required role).
  */
 
 /**

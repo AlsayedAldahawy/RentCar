@@ -13,8 +13,6 @@ const { resetPasswordLimiter } = require('../middleware/rateLimiters')
 const { sendVerificationEmail, resetPasswordEmail } = require('../utils/emailService');
 
 
-
-
 // ===== Register =====
 router.post('/register', async (req, res) => {
   const { name, email, password, phone } = req.body;
@@ -446,40 +444,75 @@ router.post('/update-password', authenticateToken, async (req, res) => {
 // PUT /companies/:id (admin only)
 router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
   const companyId = parseInt(req.params.id);
-  const { name, email, phone, password, status } = req.body;
-
-  const updates = [];
-  const values = [];
+  const { name, phone, profile_pic, email, address, city, region } = req.body;
 
   try {
+    const updates = [];
+    const values = [];
+
+    // name
     if (name) {
+      if (name.length > 100) {
+        throw new Error("Company name cannot exceed 100 characters");
+      }
       updates.push('name = ?');
       values.push(name);
     }
 
-    if (email) {
-      updates.push('email = ?');
-      values.push(email);
-    }
-
+    // phone
     if (phone) {
+      if (phone.length > 20) {
+        throw new Error("Phone number cannot exceed 20 characters");
+      }
       updates.push('phone = ?');
       values.push(phone);
     }
 
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updates.push('password = ?');
-      values.push(hashedPassword);
+    // email
+    if (email) {
+      if (email.length > 100) {
+        throw new Error("Email cannot exceed 100 characters");
+      }
+
+      // check if email already exists in another record
+      const [existing] = await db.query(
+        'SELECT id FROM companies WHERE email = ? AND id <> ?',
+        [email, companyId]
+      );
+
+      if (existing.length > 0) {
+        return res.status(400).json({ message: 'Email already exists' });
+      }
+
+      updates.push('email = ?');
+      values.push(email);
     }
 
-    if (status) {
-      const allowedStatus = ['active', 'inactive', 'pending', 'suspended', 'deleted', 'rejected'];
-      if (!allowedStatus.includes(status)) {
-        return res.status(400).json({ message: 'Invalid status value' });
+    // address
+    if (address) {
+      if (address.length > 150) {
+        throw new Error("Address cannot exceed 150 characters");
       }
-      updates.push('status = ?');
-      values.push(status);
+      updates.push('address = ?');
+      values.push(address);
+    }
+
+    // city
+    if (city) {
+      if (city.length > 100) {
+        throw new Error("City cannot exceed 100 characters");
+      }
+      updates.push('city = ?');
+      values.push(city);
+    }
+
+    // region 
+    if (region) {
+      if (region.length > 100) {
+        throw new Error("Region cannot exceed 100 characters");
+      }
+      updates.push('region = ?');
+      values.push(region);
     }
 
     if (updates.length === 0) {
@@ -490,12 +523,12 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
     values.push(companyId);
 
     await db.query(sql, values);
-    res.json({ message: 'Company updated successfully' });
 
+    res.json({ message: 'Profile updated successfully' });
   } catch (err) {
-    console.error('Admin update company error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(400).json({ message: err.message });
   }
+
 });
 
 // PUT /companies/status/:id (admin only)
@@ -558,5 +591,46 @@ router.put('/verify/:id', authenticateToken, authorizeAdmin(['superadmin', 'mode
     res.status(500).json({ message: err.message });
   }
 });
+
+
+// Admin Adding Company
+// router.post('/add-company', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
+//   const { name, email, phone, verify, pfp, status, address, city, region} = req.body;
+
+//   try {
+//     // Check if company already exists
+//     const [existingCompany] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
+//     if (existingCompany.length > 0) {
+//       return res.status(400).json({ message: 'Email already exists' });
+//     }
+
+//     // Hash the password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Insert company (unverified by default)
+//     const [result] = await db.query(
+//       'INSERT INTO companies (name, email, password, phone, is_verified) VALUES (?, ?, ?, ?, ?)',
+//       [name, email, hashedPassword, phone, false]
+//     );
+
+//     const companyId = result.insertId;
+
+//     // Generate verification token
+//     const token = jwt.sign(
+//       { id: companyId, email, role: 'company' },
+//       process.env.JWT_SECRET,
+//       { expiresIn: '1h' }
+//     );
+
+//     // Send verification email
+//     await sendAgreementFile(email);
+
+//     res.status(201).json({ message: 'Company registered. Please check your email to verify your account.' });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// });
 
 module.exports = router;
