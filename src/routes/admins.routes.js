@@ -105,7 +105,7 @@ router.get('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, r
 
   try {
     // Build base query dynamically
-    let baseQuery = `SELECT admins.id, admins.name, admins.email, admin_role.role AS role, admins.status, admins.created_at
+    let baseQuery = `SELECT admins.id, admins.name, admins.email, admin_role.role AS role, admins.status, admins.phone, admins.created_at
                      FROM admins
                      JOIN admin_role ON admins.role_id = admin_role.id`;
     const queryParams = [];
