@@ -46,6 +46,8 @@
  *                 type: string
  *               email:
  *                 type: string
+ *               phone:
+ *                 type: string
  *               password:
  *                 type: string
  *               role:
@@ -294,6 +296,9 @@
  *                       status:
  *                         type: string
  *                         example: "Active"
+ *                       phone:
+ *                         type: string
+ *                         example: "+201000458752"
  *                       created_at:
  *                         type: string
  *                         format: date-time
