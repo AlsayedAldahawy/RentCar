@@ -55,7 +55,7 @@ router.post('/login', async (req, res) => {
 // POST /admins
 // Create a new moderator (only by superadmin)
 router.post('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
-  const { name, email, password, role_id } = req.body;
+  const { name, email, password, role_id, phone } = req.body;
 
   if (!name || !email || !password || !role_id) {
     return res.status(400).json({ message: 'Name, email, password, and role_id are required' });
@@ -81,8 +81,8 @@ router.post('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, 
 
     // Insert new admin
     await db.query(
-      'INSERT INTO admins (name, email, password, role_id) VALUES (?, ?, ?, ?)',
-      [name, email, hashedPassword, role_id]
+      'INSERT INTO admins (name, email, password, role_id, phone) VALUES (?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, role_id, phone]
     );
 
     res.status(201).json({ message: `Admin created successfully with role ${roleName}` });
