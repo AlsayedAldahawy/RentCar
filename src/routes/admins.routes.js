@@ -55,15 +55,15 @@ router.post('/login', async (req, res) => {
 // POST /admins
 // Create a new moderator (only by superadmin)
 router.post('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
-  const { name, email, password, role_id, phone } = req.body;
+  const { name, email, password, roleId, phone } = req.body;
 
-  if (!name || !email || !password || !role_id) {
-    return res.status(400).json({ message: 'Name, email, password, and role_id are required' });
+  if (!name || !email || !password || !roleId) {
+    return res.status(400).json({ message: 'Name, email, password, and roleId are required' });
   }
 
   try {
-    // Check if role_id exists in admin_role table
-    const [roleRows] = await db.query('SELECT id, role FROM admin_role WHERE id = ?', [role_id]);
+    // Check if roleId exists in admin_role table
+    const [roleRows] = await db.query('SELECT id, role FROM admin_role WHERE id = ?', [roleId]);
     if (roleRows.length === 0) {
       return res.status(400).json({ message: 'Invalid role id' });
     }
@@ -81,8 +81,8 @@ router.post('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, 
 
     // Insert new admin
     await db.query(
-      'INSERT INTO admins (name, email, password, role_id, phone) VALUES (?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, role_id, phone]
+      'INSERT INTO admins (name, email, password, roleId, phone) VALUES (?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, roleId, phone]
     );
 
     res.status(201).json({ message: `Admin created successfully with role ${roleName}` });
@@ -291,8 +291,7 @@ router.get('/:id', authenticateToken, authorizeAdmin(['superadmin']), async (req
 
     res.json({ admin: rows[0] });
   } catch (err) {
-    console.error('Get admin error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error: ${err.message}` });
   }
 });
 

@@ -50,7 +50,7 @@
  *                 type: string
  *               password:
  *                 type: string
- *               role:
+ *               roleId:
  *                 type: integer
  *     responses:
  *       201:
