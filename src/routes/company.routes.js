@@ -11,6 +11,8 @@ const authorizeAdmin = require('../middleware/authorizeAdmin')
 const crypto = require('crypto')
 const { resetPasswordLimiter } = require('../middleware/rateLimiters')
 const { sendVerificationEmail, resetPasswordEmail } = require('../utils/emailService');
+const { sendCompRegistEmail, generateRandomPassword } = require('../utils/randomPassword');
+const companyCheck = require('../utils/checkConstrains')
 
 
 // ===== Register =====
@@ -594,43 +596,47 @@ router.put('/verify/:id', authenticateToken, authorizeAdmin(['superadmin', 'mode
 
 
 // Admin Adding Company
-// router.post('/add-company', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
-//   const { name, email, phone, verify, pfp, status, address, city, region} = req.body;
+router.post('/add-company', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
+  const { name, email, phone, status, address, city, region} = req.body;
 
-//   try {
-//     // Check if company already exists
-//     const [existingCompany] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
-//     if (existingCompany.length > 0) {
-//       return res.status(400).json({ message: 'Email already exists' });
-//     }
+  try {
+    // Check if company already exists
+    const [existingCompany] = await db.query('SELECT * FROM companies WHERE email = ?', [email]);
+    if (existingCompany.length > 0) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
 
-//     // Hash the password
-//     const hashedPassword = await bcrypt.hash(password, 10);
+    companyCheck([
+        { name: 'name', value: name, type: 'string', len: 100 },
+        { name: 'email', value: email, type: 'string', len: 100 },
+        { name: 'phone', value: phone, type: 'string', len: 20 },
+        { name: 'status', value: status, type: 'string', valuesList: ['active','inactive','pending','suspended','deleted','rejected'] },
+        { name: 'address', value: address, type: 'string', len: 150 },
+        { name: 'city', value: city, type: 'string', len: 100 },
+        { name: 'region', value: region, type: 'string', len: 100 }
+    ]);
 
-//     // Insert company (unverified by default)
-//     const [result] = await db.query(
-//       'INSERT INTO companies (name, email, password, phone, is_verified) VALUES (?, ?, ?, ?, ?)',
-//       [name, email, hashedPassword, phone, false]
-//     );
+    const password = generateRandomPassword(10);
 
-//     const companyId = result.insertId;
 
-//     // Generate verification token
-//     const token = jwt.sign(
-//       { id: companyId, email, role: 'company' },
-//       process.env.JWT_SECRET,
-//       { expiresIn: '1h' }
-//     );
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-//     // Send verification email
-//     await sendAgreementFile(email);
+    // Insert company (unverified by default)
+    const [result] = await db.query(
+      'INSERT INTO companies (name, email, password, phone, status, address, city, region) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, phone, status, address, city, region]
+    );
 
-//     res.status(201).json({ message: 'Company registered. Please check your email to verify your account.' });
+    // Send verification email
+    await sendCompRegistEmail(email, password);
 
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
+    res.status(201).json({ message: 'Company registered successfully' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: `Server error: ${err.message}` });
+  }
+});
 
 module.exports = router;

@@ -1,25 +1,29 @@
-// function companyCheck(attributes) {
-//     for (const attr of attributes) {
-//         // Check type if defined
-//         if (attr.type) {
-//             const type = typeof attr.value;
-//             if (
-//                 (attr.type === 'string' && type !== 'string') ||
-//                 (attr.type === 'number' && type !== 'number') ||
-//                 (attr.type === 'boolean' && type !== 'boolean')
-//             ) {
-//                 throw new Error(`Attribute "${attr.name || ''}" must be of type ${attr.type}`);
-//             }
-//         }
+function companyCheck(attributes) {
+    for (const attr of attributes) {
+        const { name = '', value, type, len, valuesList } = attr;
 
-//         // Check valuesList if defined
-//         if (attr.valuesList && !attr.valuesList.includes(attr.value)) {
-//             throw new Error(`Attribute "${attr.name || ''}" value doesn't match its definition`);
-//         }
+        // Type check
+        if (type && value != null) {
+            const actualType = typeof value;
+            if (
+                (type === 'string' && actualType !== 'string') ||
+                (type === 'number' && actualType !== 'number') ||
+                (type === 'boolean' && actualType !== 'boolean')
+            ) {
+                throw new Error(`Attribute "${name}" must be of type ${type}`);
+            }
+        }
 
-//         // Check length if len is defined and value is a string
-//         if (attr.len && typeof attr.value === 'string' && attr.value.length !== attr.len) {
-//             throw new Error(`Attribute "${attr.name || ''}" must be exactly ${attr.len} characters long`);
-//         }
-//     }
-// }
+        // Allowed values check
+        if (valuesList && !valuesList.includes(value)) {
+            throw new Error(`Attribute "${name}" value "${value}" doesn't match its definition`);
+        }
+
+        // Max length check for strings
+        if (len && typeof value === 'string' && value.length > len) {
+            throw new Error(`Attribute "${name}" must not exceed ${len} characters`);
+        }
+    }
+}
+
+module.exports = companyCheck;

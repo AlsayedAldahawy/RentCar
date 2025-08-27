@@ -29,6 +29,88 @@
 
 /**
  * @swagger
+ * /companies/add-company:
+ *   post:
+ *     summary: Add a new company
+ *     description: Add a new company by an admin (superadmin or moderator) with a randomly generated password sent via email.
+ *     tags:
+ *       - Companies
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - phone
+ *               - status
+ *               - address
+ *               - city
+ *               - region
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Morocco RentCar Company"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "company@example.com"
+ *               phone:
+ *                 type: string
+ *                 example: "+212600000000"
+ *               status:
+ *                 type: string
+ *                 enum: ["active","inactive","pending","suspended","deleted","rejected"]
+ *                 example: "pending"
+ *               address:
+ *                 type: string
+ *                 example: "123 Morocco Street"
+ *               city:
+ *                 type: string
+ *                 example: "Rabat"
+ *               region:
+ *                 type: string
+ *                 example: "Rabat-Salé-Kénitra"
+ *     responses:
+ *       201:
+ *         description: Company registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Company registered successfully"
+ *       400:
+ *         description: Email already exists or invalid data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Email already exists"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server error: Internal Server Error"
+ */
+
+
+/**
+ * @swagger
  * /companies/login:
  *   post:
  *     summary: Login as a company
