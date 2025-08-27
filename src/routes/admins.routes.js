@@ -14,7 +14,7 @@ router.post('/login', async (req, res) => {
 
   try {
     // Check if admin exists
-    const [adminResult] = await db.query('SELECT * FROM admins WHERE email = ?', [email]);
+    const [adminResult] = await db.query('SELECT * FROM admins JOIN admin_role ON admins.role_id=admin_role.id WHERE email = ?', [email]);
     if (adminResult.length === 0) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
@@ -48,61 +48,94 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Admin login error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error: ${err.message}` });
   }
 });
 
 // POST /admins
 // Create a new moderator (only by superadmin)
 router.post('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role_id } = req.body;
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: 'Name, email, and password are required' });
-  }
-
-  if (!['moderator', 'superadmin'].includes(role)) {
-    return res.status(400).json({ message: 'Invalid role' });
+  if (!name || !email || !password || !role_id) {
+    return res.status(400).json({ message: 'Name, email, password, and role_id are required' });
   }
 
   try {
+    // Check if role_id exists in admin_role table
+    const [roleRows] = await db.query('SELECT id, role FROM admin_role WHERE id = ?', [role_id]);
+    if (roleRows.length === 0) {
+      return res.status(400).json({ message: 'Invalid role_id' });
+    }
+
+    const roleName = roleRows[0].role;
+
+    // Check if email already exists
     const [existing] = await db.query('SELECT id FROM admins WHERE email = ?', [email]);
     if (existing.length > 0) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert new admin
     await db.query(
-      'INSERT INTO admins (name, email, password, role) VALUES (?, ?, ?, ?)',
-      [name, email, hashedPassword, role]
+      'INSERT INTO admins (name, email, password, role_id) VALUES (?, ?, ?, ?)',
+      [name, email, hashedPassword, role_id]
     );
 
-    res.status(201).json({ message: `Admin created successfully with role ${role}` });
+    res.status(201).json({ message: `Admin created successfully with role ${roleName}` });
 
   } catch (err) {
-    console.error('Create admin error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error: ${err.message}` });
   }
 });
 
+
 // GET /admins
 // Get all admins (superadmin only)
+// GET /admins
+// Get all admins (superadmin only) with optional filters by status and role
 router.get('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
+  const { status, role } = req.query; // Get optional filters
 
   try {
-    const [admins] = await db.query(
-      `SELECT id, name, email, role, created_at
-       FROM admins
-       ORDER BY created_at DESC
-       LIMIT ? OFFSET ?`,
-      [limit, offset]
-    );
+    // Build base query dynamically
+    let baseQuery = `SELECT admins.id, admins.name, admins.email, admin_role.role AS role, admins.status, admins.created_at
+                     FROM admins
+                     JOIN admin_role ON admins.role_id = admin_role.id`;
+    const queryParams = [];
+    const filters = [];
 
-    const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM admins');
+    if (status) {
+      filters.push('admins.status = ?');
+      queryParams.push(status);
+    }
+
+    if (role) {
+      filters.push('admins.role_id = ?');
+      queryParams.push(role);
+    }
+
+    if (filters.length > 0) {
+      baseQuery += ' WHERE ' + filters.join(' AND ');
+    }
+
+    baseQuery += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    queryParams.push(limit, offset);
+
+    const [admins] = await db.query(baseQuery, queryParams);
+
+    // Total count with same filters
+    let countQuery = 'SELECT COUNT(*) AS total FROM admins';
+    if (filters.length > 0) {
+      countQuery += ' WHERE ' + filters.join(' AND ');
+    }
+    const [[{ total }]] = await db.query(countQuery, filters.map(f => queryParams[filters.indexOf(f)])); 
 
     res.json({
       admins,
@@ -115,9 +148,10 @@ router.get('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, r
     });
   } catch (err) {
     console.error('Get admins error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error: ${err.message}` });
   }
 });
+
 
 // DELETE /admins/:id
 // Delete an admin (superadmin only)

@@ -106,8 +106,18 @@ insert into admin_role(role) values("superadmin"), ('moderator');
 
 ALTER TABLE admins
 ADD COLUMN profile_pic VARCHAR(255),
-ADD COLUMN phone VARCHAR(15);
 
 
 alter table companies add column address varchar(150);
 alter table companies add column (city varchar(100), region varchar(100));
+
+ALTER TABLE admins
+-- Add phone column to store admin phone numbers
+ADD COLUMN phone VARCHAR(20),
+-- Add status column with ENUM values 'Active' and 'Suspended', default is 'Active'
+ADD COLUMN status ENUM('Active', 'Suspended') NOT NULL DEFAULT 'Active',
+-- Add role_id column to reference the admin_role table
+ADD COLUMN role_id INT,
+-- Add foreign key constraint linking role_id to admin_role(id)
+ADD CONSTRAINT fk_admin_role
+FOREIGN KEY (role_id) REFERENCES admin_role(id);

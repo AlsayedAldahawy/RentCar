@@ -49,8 +49,7 @@
  *               password:
  *                 type: string
  *               role:
- *                 type: string
- *                 enum: [superadmin, moderator]
+ *                 type: integer
  *     responses:
  *       201:
  *         description: Admin created
@@ -236,8 +235,10 @@
  * @swagger
  * /admins:
  *   get:
- *     summary: Get all admins (superadmin only)
- *     tags: [Admins]
+ *     summary: Get all admins
+ *     description: Retrieve a paginated list of all admins with their roles and status. Accessible by superadmins only. Optional filters for status and role_id.
+ *     tags:
+ *       - Admins
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -245,15 +246,28 @@
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number (default is 1)
+ *           default: 1
+ *         description: Page number for pagination
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Number of results per page (default is 10)
+ *           default: 10
+ *         description: Number of admins per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: ["Active", "Suspended"]
+ *         description: Optional filter by admin status
+ *       - in: query
+ *         name: role_id
+ *         schema:
+ *           type: integer
+ *         description: Optional filter by admin role ID
  *     responses:
  *       200:
- *         description: List of admins
+ *         description: A paginated list of admins
  *         content:
  *           application/json:
  *             schema:
@@ -266,32 +280,51 @@
  *                     properties:
  *                       id:
  *                         type: integer
+ *                         example: 1
  *                       name:
  *                         type: string
+ *                         example: "John Doe"
  *                       email:
  *                         type: string
+ *                         format: email
+ *                         example: "john.doe@example.com"
  *                       role:
  *                         type: string
- *                         enum: [superadmin, moderator]
+ *                         example: "Moderator"
+ *                       status:
+ *                         type: string
+ *                         example: "Active"
  *                       created_at:
  *                         type: string
  *                         format: date-time
+ *                         example: "2025-08-27T18:30:00.000Z"
  *                 pagination:
  *                   type: object
  *                   properties:
  *                     total:
  *                       type: integer
+ *                       example: 25
  *                     page:
  *                       type: integer
+ *                       example: 1
  *                     pageSize:
  *                       type: integer
+ *                       example: 10
  *                     totalPages:
  *                       type: integer
- *       403:
- *         description: Access denied (Only superadmins allowed)
+ *                       example: 3
  *       500:
  *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server error: Internal Server Error"
  */
+
 
 /**
  * @swagger
