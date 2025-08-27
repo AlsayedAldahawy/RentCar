@@ -81,7 +81,7 @@ router.post('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, 
 
     // Insert new admin
     await db.query(
-      'INSERT INTO admins (name, email, password, roleId, phone) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO admins (name, email, password, role_id, phone) VALUES (?, ?, ?, ?, ?)',
       [name, email, hashedPassword, roleId, phone]
     );
 
