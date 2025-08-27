@@ -65,7 +65,7 @@ router.post('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, 
     // Check if role_id exists in admin_role table
     const [roleRows] = await db.query('SELECT id, role FROM admin_role WHERE id = ?', [role_id]);
     if (roleRows.length === 0) {
-      return res.status(400).json({ message: 'Invalid role_id' });
+      return res.status(400).json({ message: 'Invalid role id' });
     }
 
     const roleName = roleRows[0].role;
@@ -93,8 +93,6 @@ router.post('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, 
 });
 
 
-// GET /admins
-// Get all admins (superadmin only)
 // GET /admins
 // Get all admins (superadmin only) with optional filters by status and role
 router.get('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
@@ -147,7 +145,6 @@ router.get('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, r
       },
     });
   } catch (err) {
-    console.error('Get admins error:', err);
     res.status(500).json({ message: `Server error: ${err.message}` });
   }
 });
@@ -180,7 +177,8 @@ router.get('/profile', authenticateToken, authorizeAdmin(['superadmin', 'moderat
 
   try {
     const [admins] = await db.query(
-      'SELECT id, name, email, role FROM admins WHERE id = ?',
+      `SELECT admins.id, name, email, status, phone, admin_role.role FROM admins
+          JOIN admin_role ON admins.role_id = admin_role.id WHERE admins.id = ?`,
       [adminId]
     );
 
@@ -191,8 +189,7 @@ router.get('/profile', authenticateToken, authorizeAdmin(['superadmin', 'moderat
     res.json({ profile: admins[0] });
 
   } catch (err) {
-    console.error('Get profile error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error: ${err.message}` });
   }
 });
 
@@ -202,9 +199,8 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
   const requesterId = req.user.id;
   const requesterRole = req.user.role;
 
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, phone, status } = req.body;
 
-  // Only superadmin can update role or update others
   const isSelf = requesterId === targetAdminId;
   const isSuperAdmin = requesterRole === 'superadmin';
 
@@ -212,34 +208,40 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
     return res.status(403).json({ message: 'You are not allowed to edit other admins' });
   }
 
-  if (role && !isSuperAdmin) {
-    return res.status(403).json({ message: 'Only superadmin can change admin roles' });
+  if ((role || status) && !isSuperAdmin) {
+    return res.status(403).json({ message: 'Only superadmin can change admin roles or status' });
   }
 
   try {
+    // Validate role if provided
+    if (role) {
+      const [roleRows] = await db.query('SELECT id FROM admin_role WHERE id = ?', [role]);
+      if (roleRows.length === 0) {
+        return res.status(400).json({ message: 'Invalid role id' });
+      }
+    }
+
+    // Check if email already exists for another admin
+    if (email) {
+      const [existing] = await db.query('SELECT id FROM admins WHERE email = ? AND id != ?', [email, targetAdminId]);
+      if (existing.length > 0) {
+        return res.status(400).json({ message: 'Email already exists' });
+      }
+    }
+
     const updates = [];
     const values = [];
 
-    if (name) {
-      updates.push('name = ?');
-      values.push(name);
-    }
-
-    if (email) {
-      updates.push('email = ?');
-      values.push(email);
-    }
-
+    if (name) updates.push('name = ?'), values.push(name);
+    if (email) updates.push('email = ?'), values.push(email);
+    if (phone) updates.push('phone = ?'), values.push(phone);
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
       updates.push('password = ?');
       values.push(hashedPassword);
     }
-
-    if (role && isSuperAdmin) {
-      updates.push('role = ?');
-      values.push(role);
-    }
+    if (role && isSuperAdmin) updates.push('role_id = ?'), values.push(role);
+    if (status && isSuperAdmin) updates.push('status = ?'), values.push(status);
 
     if (updates.length === 0) {
       return res.status(400).json({ message: 'No fields to update' });
@@ -254,9 +256,10 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
 
   } catch (err) {
     console.error('Admin update error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error: ${err.message}` });
   }
 });
+
 
 router.get('/role',authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res)=>{
   try {
@@ -276,11 +279,13 @@ router.get('/role',authenticateToken, authorizeAdmin(['superadmin', 'moderator']
     });
   }
 })
+
 router.get('/:id', authenticateToken, authorizeAdmin(['superadmin']), async (req, res) => {
   const adminId = req.params.id;
 
   try {
-    const [rows] = await db.query('SELECT id, name, email, role FROM admins WHERE id = ?', [adminId]);
+    const [rows] = await db.query('SELECT admins.id, name, email, admin_role.role, status, phone FROM admins\
+       JOIN admin_role ON admins.role_id = admin_role.id WHERE admins.id = ?', [adminId]);
 
     if (rows.length === 0) return res.status(404).json({ message: 'Admin not found' });
 

@@ -141,18 +141,62 @@
  * @swagger
  * /admins/profile:
  *   get:
+ *     summary: Get current admin profile
+ *     description: Retrieve the profile of the currently logged-in admin. Accessible by superadmin and moderator.
  *     tags:
  *       - Admins
- *     summary: Get the profile of the logged-in admin
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Admin profile data
+ *         description: Admin profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 profile:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     name:
+ *                       type: string
+ *                       example: "John Doe"
+ *                     email:
+ *                       type: string
+ *                       format: email
+ *                       example: "john.doe@example.com"
+ *                     status:
+ *                       type: string
+ *                       example: "Active"
+ *                     phone:
+ *                       type: string
+ *                       example: "+212600000000"
+ *                     role:
+ *                       type: string
+ *                       example: "Moderator"
  *       404:
  *         description: Admin not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Admin not found"
  *       500:
  *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server error: Internal Server Error"
  */
 
 /**
@@ -185,8 +229,10 @@
  * @swagger
  * /admins/{id}:
  *   put:
- *     summary: Update admin information (self-update or superadmin only)
- *     tags: [Admins]
+ *     summary: Update an admin
+ *     description: Update an admin's information. Only superadmin can update roles or status, and edit other admins.
+ *     tags:
+ *       - Admins
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -205,15 +251,25 @@
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "Jane Doe"
  *               email:
  *                 type: string
  *                 format: email
+ *                 example: "jane.doe@example.com"
  *               password:
  *                 type: string
- *               role:
+ *                 format: password
+ *                 example: "NewSecurePass123"
+ *               phone:
  *                 type: string
- *                 enum: [superadmin, moderator]
- *                 description: Only superadmin can change roles
+ *                 example: "+212600000001"
+ *               role:
+ *                 type: integer
+ *                 example: 2
+ *               status:
+ *                 type: string
+ *                 enum: ["Active", "Suspended"]
+ *                 example: "Active"
  *     responses:
  *       200:
  *         description: Admin updated successfully
@@ -224,13 +280,37 @@
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Admin updated successfully
+ *                   example: "Admin updated successfully"
  *       400:
- *         description: No fields to update
+ *         description: Bad request (invalid input or email already exists)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid role id"
  *       403:
- *         description: Not authorized to perform this update
+ *         description: Forbidden (not allowed to edit)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "You are not allowed to edit other admins"
  *       500:
  *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server error: Internal Server Error"
  */
 
 /**
