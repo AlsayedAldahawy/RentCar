@@ -1,3 +1,5 @@
+
+// POST:Register
 /**
  * @swagger
  * /companies/register:
@@ -27,6 +29,8 @@
  *         description: Bad request
  */
 
+
+// POST:add-company
 /**
  * @swagger
  * /companies/add-company:
@@ -109,6 +113,7 @@
  */
 
 
+// POST:Login
 /**
  * @swagger
  * /companies/login:
@@ -134,6 +139,7 @@
  *         description: Invalid credentials
  */
 
+// GET:profile
 /**
  * @swagger
  * /companies/profile:
@@ -172,7 +178,7 @@
  *                     status:
  *                       type: string
  *                       example: "active"
- *                     profile_pic:
+ *                     profilePic:
  *                       type: string
  *                       example: "https://example.com/profile.jpg"
  *                     address:
@@ -195,6 +201,7 @@
  */
 
 
+// GET:id (Public view)
 /**
  * @swagger
  * /companies/{id}:
@@ -232,7 +239,7 @@
  *                     status:
  *                       type: string
  *                       example: "active"
- *                     profile_pic:
+ *                     profilePic:
  *                       type: string
  *                       example: "https://example.com/profile.jpg"
  *                     address:
@@ -284,7 +291,7 @@
  *                       type: string
  *                     phone:
  *                       type: string
- *                     profile_pic:
+ *                     profilePic:
  *                       type: string
  *                     address:
  *                       type: string
@@ -309,119 +316,126 @@
  *         description: Server error
  */
 
-
+// GET: /companies
 /**
  * @swagger
  * /companies:
  *   get:
- *     summary: Get list of companies
- *     description: Retrieve a paginated list of companies. Admins will see all details, while normal users will see limited public info.
- *     tags: [Companies]
- *     security:
- *       - bearerAuth: []
+ *     summary: Get companies (with pagination and filters)
+ *     description: >
+ *       - **Admin users** get detailed info about companies (city, region, status, verification, etc).  
+ *       - **Normal users** get limited company info (no sensitive fields).
+ *     tags:
+ *       - Companies
  *     parameters:
  *       - in: query
- *         name: page
+ *         name: cityId
  *         schema:
  *           type: integer
- *           default: 1
- *         description: Page number for pagination
+ *         description: Filter companies by city ID
+ *       - in: query
+ *         name: regionId
+ *         schema:
+ *           type: integer
+ *         description: Filter companies by region ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, inactive, pending, suspended, deleted, rejected]
+ *         description: Filter companies by status
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Search companies by name (partial match)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *           default: 10
- *         description: Number of companies per page
+ *           example: 10
+ *         description: Number of results per page
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           example: 0
+ *         description: Number of records to skip (for pagination)
+ *
  *     responses:
  *       200:
- *         description: Paginated list of companies
+ *         description: List of companies (admin or user view depending on role)
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 companies:
+ *                 total:
+ *                   type: integer
+ *                   example: 42
+ *                 rows:
  *                   type: array
  *                   items:
  *                     oneOf:
- *                       - $ref: '#/components/schemas/CompanyAdmin'
- *                       - $ref: '#/components/schemas/CompanyPublic'
- *                 pagination:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: integer
- *                       example: 35
- *                     page:
- *                       type: integer
- *                       example: 1
- *                     pageSize:
- *                       type: integer
- *                       example: 10
- *                     totalPages:
- *                       type: integer
- *                       example: 4
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: No companies found
+ *                       - type: object
+ *                         description: Admin response
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           name:
+ *                             type: string
+ *                             example: "Alex Cars"
+ *                           email:
+ *                             type: string
+ *                             example: "info@alexcars.com"
+ *                           phone:
+ *                             type: string
+ *                             example: "+20123456789"
+ *                           profilePic:
+ *                             type: string
+ *                             example: "uploads/company1.png"
+ *                           address:
+ *                             type: string
+ *                             example: "123 Main Street"
+ *                           city:
+ *                             type: string
+ *                             example: "Cairo"
+ *                           region:
+ *                             type: string
+ *                             example: "Giza"
+ *                           createdAs:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-08-29T10:15:30Z"
+ *                           isVerified:
+ *                             type: boolean
+ *                             example: true
+ *                           status:
+ *                             type: string
+ *                             enum: [active, inactive, pending, suspended, deleted, rejected]
+ *                             example: "active"
+ *                       - type: object
+ *                         description: Normal user response
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           name:
+ *                             type: string
+ *                             example: "Alex Cars"
+ *                           email:
+ *                             type: string
+ *                             example: "info@alexcars.com"
+ *                           phone:
+ *                             type: string
+ *                             example: "+20123456789"
+ *                           profilePic:
+ *                             type: string
+ *                             example: "uploads/company1.png"
+ *
  *       500:
  *         description: Server error
- *
- * components:
- *   schemas:
- *     CompanyPublic:
- *       type: object
- *       properties:
- *         name:
- *           type: string
- *           example: "Ahmed Ala`a"
- *         email:
- *           type: string
- *           example: "aa@aa.com"
- *         phone:
- *           type: string
- *           example: "01123456789"
- *         profile_pic:
- *           type: string
- *           example: "https://example.com/profile.jpg"
- *     CompanyAdmin:
- *       type: object
- *       properties:
- *         id:
- *           type: integer
- *           example: 12
- *         name:
- *           type: string
- *           example: "Ahmed Ala`a"
- *         email:
- *           type: string
- *           example: "aa@aa.com"
- *         phone:
- *           type: string
- *           example: "01123456789"
- *         profile_pic:
- *           type: string
- *           example: "https://example.com/profile.jpg"
- *         address:
- *           type: string
- *           example: "123 Street, Cairo"
- *         city:
- *           type: string
- *           example: "Cairo"
- *         region:
- *           type: string
- *           example: "Giza"
- *         created_at:
- *           type: string
- *           format: date-time
- *           example: "2025-08-20T12:34:56Z"
- *         is_verified:
- *           type: boolean
- *           example: true
- *         status:
- *           type: string
- *           example: "active"
  */
 
 /**
@@ -542,23 +556,25 @@
  *         description: Server error
  */
 
+// Put:id (update company by admin)
 /**
  * @swagger
  * /companies/{id}:
  *   put:
- *     summary: Update a company's profile
- *     description: Updates the company's information. Requires authentication and `superadmin` or `moderator` role.
+ *     summary: Update company profile by ID (Admin only)
+ *     description: This API allows an admin to update the profile of a company. The admin can modify fields like name, email, phone, profile picture, address, and city.
  *     tags:
  *       - Companies
  *     security:
- *       - bearerAuth: []
+ *       - bearerAuth: []  # Assuming Bearer Token Authentication
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: ID of the company to update.
  *         schema:
  *           type: integer
- *         description: ID of the company to update.
+ *           example: 1
  *     requestBody:
  *       required: true
  *       content:
@@ -568,29 +584,129 @@
  *             properties:
  *               name:
  *                 type: string
- *                 maxLength: 100
- *                 description: Company name.
- *               phone:
- *                 type: string
- *                 maxLength: 20
- *                 description: Company phone number.
+ *                 description: Name of the company.
+ *                 example: "Tech Solutions"
  *               email:
  *                 type: string
- *                 maxLength: 100
- *                 format: email
- *                 description: Company email (must be unique).
+ *                 description: Email address of the company.
+ *                 example: "contact@techsolutions.com"
+ *               phone:
+ *                 type: string
+ *                 description: Phone number of the company.
+ *                 example: "+201234567890"
+ *               profilePic:
+ *                 type: string
+ *                 description: URL of the company profile picture.
+ *                 example: "https://example.com/profile-pic.jpg"
  *               address:
  *                 type: string
- *                 maxLength: 150
- *                 description: Company address.
- *               city:
+ *                 description: Address of the company.
+ *                 example: "123 Tech Street, Cairo"
+ *               cityId:
+ *                 type: integer
+ *                 description: ID of the city where the company is located.
+ *                 example: 3
+ *     responses:
+ *       200:
+ *         description: Company profile updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Your profile updated successfully"
+ *                 companyId:
+ *                   type: integer
+ *                   example: 1
+ *       400:
+ *         description: Bad request, invalid input data or company not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Company not found"
+ *       403:
+ *         description: Forbidden, only admins can update company profiles.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Only company can update their profile"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Server error: <error details>"
+ */
+
+
+// PUT: profile (Update by company)
+/**
+ * @swagger
+ * /companies/profile:
+ *   put:
+ *     summary: Update company profile information
+ *     description: This API allows a company to update its profile details, such as name, phone, email, address, and city.
+ *     tags:
+ *       - Companies
+ *     security:
+ *       - bearerAuth: []  # Assuming you are using Bearer Token for authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
  *                 type: string
- *                 maxLength: 100
- *                 description: Company city.
- *               region:
+ *                 description: Name of the company.
+ *                 example: "Tech Solutions"
+ *               email:
  *                 type: string
- *                 maxLength: 100
- *                 description: Company region.
+ *                 description: Email of the company.
+ *                 example: "contact@techsolutions.com"
+ *               phone:
+ *                 type: string
+ *                 description: Phone number of the company.
+ *                 example: "+201234567890"
+ *               profilePic:
+ *                 type: string
+ *                 description: URL of the company's profile picture.
+ *                 example: "https://example.com/profile-pic.jpg"
+ *               address:
+ *                 type: string
+ *                 description: Address of the company.
+ *                 example: "123 Tech Street, Cairo"
+ *               cityId:
+ *                 type: integer
+ *                 description: City ID where the company is located.
+ *                 example: 3
  *     responses:
  *       200:
  *         description: Profile updated successfully.
@@ -599,84 +715,57 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
- *                   example: Profile updated successfully
+ *                   example: "Your profile updated successfully"
+ *                 companyId:
+ *                   type: integer
+ *                   example: 1
  *       400:
- *         description: Bad request (validation error, duplicate email, or no fields provided).
+ *         description: Bad request, either due to missing or invalid data.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
  *                 message:
  *                   type: string
- *                   example: Email already exists
- *       401:
- *         description: Unauthorized (missing or invalid token).
+ *                   example: "Company not found"
  *       403:
- *         description: Forbidden (user doesn't have required role).
- */
-
-/**
- * @swagger
- * /companies/profile:
- *   put:
- *     summary: Update logged-in company's profile
- *     description: Update company profile information. Each field has a maximum length restriction.
- *     tags: [Companies]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 maxLength: 100
- *                 example: "Ahmed Ala`a"
- *               phone:
- *                 type: string
- *                 maxLength: 20
- *                 example: "01123456789"
- *               email:
- *                 type: string
- *                 format: email
- *                 maxLength: 100
- *                 example: "aa@aa.com"
- *               profile_pic:
- *                 type: string
- *                 maxLength: 255
- *                 example: "https://example.com/profile.jpg"
- *               address:
- *                 type: string
- *                 maxLength: 150
- *                 example: "123 Street, Cairo"
- *               city:
- *                 type: string
- *                 maxLength: 100
- *                 example: "Cairo"
- *               region:
- *                 type: string
- *                 maxLength: 100
- *                 example: "Giza"
- *     responses:
- *       200:
- *         description: Profile updated successfully
- *       400:
- *         description: Validation failed (e.g. field too long or no fields to update)
- *       401:
- *         description: Unauthorized (missing or invalid token)
- *       403:
- *         description: Only company users can update their profile
+ *         description: Forbidden, if the user is not a company.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Only company can update their profile"
  *       500:
- *         description: Server error
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Server error: <error details>"
  */
 
-
+// Post: Reset password
 /**
  * @swagger
  * /companies/reset-password:
@@ -740,7 +829,7 @@
  *                   example: Server error
  */
 
-
+// Post: update password
 /**
  * @swagger
  * /companies/update-password:

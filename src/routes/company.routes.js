@@ -12,7 +12,9 @@ const crypto = require('crypto')
 const { resetPasswordLimiter } = require('../middleware/rateLimiters')
 const { sendVerificationEmail, resetPasswordEmail } = require('../utils/emailService');
 const { sendCompRegistEmail, generateRandomPassword } = require('../utils/randomPassword');
-const companyCheck = require('../utils/checkConstrains')
+const fieldCheck = require('../utils/checkConstrains')
+const { getCompaniesController } = require('../controllers/companyController.js');
+
 
 
 // ===== Register =====
@@ -35,15 +37,6 @@ router.post('/register', async (req, res) => {
       [name, email, hashedPassword, phone, false]
     );
 
-    const companyId = result.insertId;
-
-    // Generate verification token
-    const token = jwt.sign(
-      { id: companyId, email, role: 'company' },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-
     // Send verification email
     await sendAgreementFile(email);
 
@@ -51,7 +44,7 @@ router.post('/register', async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error:${err.message}` });
   }
 });
 
@@ -77,11 +70,11 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // 🔐 Include role in token
+    // Include role in token
     const token = generateToken({
       id: company.id,
       email: company.email,
-      role: 'company' // 👈 very important!
+      role: 'company' // very important!
     });
 
     res.status(200).json({
@@ -97,7 +90,7 @@ router.post('/login', async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err });
+    res.status(500).json({ message: `Server error:${err.message}` });
   }
 });
 
@@ -110,17 +103,18 @@ router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const [result] = await db.query(
       `SELECT 
-        id,
-        name,
-        email,
-        phone,
-        status,
-        profile_pic,
-        address,
-        city,
-        region
-       FROM companies 
-       WHERE id = ?`,
+        cm.id,
+        cm.name,
+        cm.email,
+        cm.phone,
+        cm.status,
+        cm.profile_pic AS profilePic,
+        cm.address,
+        ct.name AS city,
+        rg.name AS region
+       FROM companies AS cm JOIN cities as ct ON cm.city_id = ct.id
+       JOIN regions as rg ON ct.region_id = rg.id
+       WHERE cm.id = ?`,
       [req.user.id]
     );
 
@@ -135,7 +129,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Server error:${err.message}` });
   }
 });
 
@@ -145,14 +139,18 @@ router.get('/:id', async (req, res) => {
   const companyId = req.params.id;
 
   try {
-    const [rows] = await db.query('SELECT name, email, phone, status, profile_pic, address, city, region FROM companies WHERE id = ?', [companyId]);
+    const [rows] = await db.query(`SELECT cm.name, email, phone, status, profile_pic as profilePic,
+                      address, ct.name AS city, rg.name AS region
+                      FROM companies AS cm JOIN cities AS ct
+                      ON cm.city_id = ct.id Join regions AS rg
+                      ON ct.region_id = rg.id
+                      WHERE cm.id = ?`, [companyId]);
 
     if (rows.length === 0) return res.status(404).json({ message: 'Company not found' });
 
     res.json({ company: rows[0] });
   } catch (err) {
-    console.error('Get company error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: `Server error:${err.message}` });
   }
 });
 
@@ -162,58 +160,21 @@ router.get('/admin/:id', authenticateToken, authorizeAdmin(['superadmin', 'moder
   const companyId = req.params.id;
 
   try {
-    const [rows] = await db.query('SELECT id, name, email, phone, profile_pic, address, city, region, created_at, is_verified, status FROM companies WHERE id = ?', [companyId]);
+    const [rows] = await db.query(`SELECT cm.id, cm.name, email, phone, cm.profile_pic AS profilePic, address, ct.name as city, rg.name as region, created_at AS createdAs,
+      is_verified AS isVerified, status FROM companies as cm JOIN cities AS ct ON cm.city_id = ct.id
+      JOIN regions AS rg ON ct.region_id = rg.id WHERE cm.id = ?`, [companyId]);
 
     if (rows.length === 0) return res.status(404).json({ message: 'Company not found' });
 
     res.json({ company: rows[0] });
   } catch (err) {
-    console.error('Get company error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: `Server error:${err.message}` });
   }
 });
 
-// Get all companies with pagination
-router.get('/', authenticateToken, async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const offset = (page - 1) * limit;
+// Get all companies with pagination and filters
+router.get('/', authenticateToken, getCompaniesController);
 
-  let q = '';
-  if (req.user.type === 'admin') {
-    q = `SELECT id, name, email, phone, profile_pic, address, city, region, created_at, is_verified, status FROM companies
-       ORDER BY id DESC
-       LIMIT ? OFFSET ?`
-  } else {
-    q = `SELECT name, email, phone, profile_pic FROM companies
-       ORDER BY id DESC
-       LIMIT ? OFFSET ?`
-  }
-
-  try {
-    const [rows] = await db.query(q, [limit, offset]
-    );
-
-    const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM companies');
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'No companies found' });
-    }
-
-    res.json({
-      companies: rows,
-      pagination: {
-        total,
-        page,
-        pageSize: limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (err) {
-    console.error('Get companies error:', err);
-    res.status(500).json({ message: err.message });
-  }
-});
 
 // DELETE /companies/:id
 // Only superadmin can delete companies
@@ -229,8 +190,7 @@ router.delete('/:id', authenticateToken, authorizeAdmin(['superadmin']), async (
 
     res.json({ message: 'Company deleted successfully' });
   } catch (err) {
-    console.error('Delete company error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error:${err.message}` });
   }
 });
 
@@ -241,11 +201,45 @@ router.put('/profile', authenticateToken, async (req, res) => {
   }
 
   const companyId = req.user.id;
-  const { name, phone, profile_pic, email, address, city, region } = req.body;
-
   try {
+    const { name, phone, profilePic, email, address, cityId } = req.body;
+
+    // Validation check
+    fieldCheck([
+      { name: 'name', value: name, type: 'string', len: 100 },
+      { name: 'email', value: email, type: 'string', len: 100 },
+      { name: 'phone', value: phone, type: 'string', len: 20 },
+      { name: 'profilePic', value: profilePic, type: 'string', len: 255 },
+      { name: 'address', value: address, type: 'string', len: 150 },
+      { name: 'cityId', value: cityId, type: 'number' },
+    ]);
+
+
+    // Check if companyId exists in the companies table (for updates)
+    const [companyRows] = await db.query("SELECT id FROM companies WHERE id = ?", [companyId]);
+    if (companyRows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Company not found",
+      });
+    }
+
     const updates = [];
     const values = [];
+
+    // Check if cityId exists in the cities table
+    if (cityId) {
+      const [cityRows] = await db.query("SELECT id FROM cities WHERE id = ?", [cityId]);
+      if (cityRows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "City ID not found in the cities table",
+        });
+      }
+
+      updates.push('city_id = ?');
+      values.push(cityId);
+    }
 
     // name
     if (name) {
@@ -258,19 +252,12 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
     // phone
     if (phone) {
-      if (phone.length > 20) {
-        throw new Error("Phone number cannot exceed 20 characters");
-      }
       updates.push('phone = ?');
       values.push(phone);
     }
 
     // email
     if (email) {
-      if (email.length > 100) {
-        throw new Error("Email cannot exceed 100 characters");
-      }
-
       // check if email already exists in another record
       const [existing] = await db.query(
         'SELECT id FROM companies WHERE email = ? AND id <> ?',
@@ -287,38 +274,8 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
     // address
     if (address) {
-      if (address.length > 150) {
-        throw new Error("Address cannot exceed 150 characters");
-      }
       updates.push('address = ?');
       values.push(address);
-    }
-
-    // city
-    if (city) {
-      if (city.length > 100) {
-        throw new Error("City cannot exceed 100 characters");
-      }
-      updates.push('city = ?');
-      values.push(city);
-    }
-
-    // region 
-    if (region) {
-      if (region.length > 100) {
-        throw new Error("Region cannot exceed 100 characters");
-      }
-      updates.push('region = ?');
-      values.push(region);
-    }
-
-    // profile_pic
-    if (profile_pic) {
-      if (profile_pic.length > 255) {
-        throw new Error("Profile picture path cannot exceed 255 characters");
-      }
-      updates.push('profile_pic = ?');
-      values.push(profile_pic);
     }
 
     if (updates.length === 0) {
@@ -330,9 +287,16 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
     await db.query(sql, values);
 
-    res.json({ message: 'Profile updated successfully' });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.json({
+      success: true,
+      message: 'Your profile updated successfully',
+      companyId,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 });
 
@@ -405,8 +369,7 @@ router.post('/update-password', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
-    console.error('Update password error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: `Server error:${err.message}`});
   }
 });
 
@@ -446,11 +409,47 @@ router.post('/update-password', authenticateToken, async (req, res) => {
 // PUT /companies/:id (admin only)
 router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
   const companyId = parseInt(req.params.id);
-  const { name, phone, profile_pic, email, address, city, region } = req.body;
+  const { name, phone, profilePic, email, address, cityId } = req.body;
 
-  try {
+   try {
+    const { name, phone, profilePic, email, address, cityId } = req.body;
+
+    // Validation check
+    fieldCheck([
+      { name: 'name', value: name, type: 'string', len: 100 },
+      { name: 'email', value: email, type: 'string', len: 100 },
+      { name: 'phone', value: phone, type: 'string', len: 20 },
+      { name: 'profilePic', value: profilePic, type: 'string', len: 255 },
+      { name: 'address', value: address, type: 'string', len: 150 },
+      { name: 'cityId', value: cityId, type: 'number' },
+    ]);
+
+
+    // Check if companyId exists in the companies table (for updates)
+    const [companyRows] = await db.query("SELECT id FROM companies WHERE id = ?", [companyId]);
+    if (companyRows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Company not found",
+      });
+    }
+
     const updates = [];
     const values = [];
+
+    // Check if cityId exists in the cities table
+    if (cityId) {
+      const [cityRows] = await db.query("SELECT id FROM cities WHERE id = ?", [cityId]);
+      if (cityRows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "City ID not found in the cities table",
+        });
+      }
+
+      updates.push('city_id = ?');
+      values.push(cityId);
+    }
 
     // name
     if (name) {
@@ -463,19 +462,12 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
 
     // phone
     if (phone) {
-      if (phone.length > 20) {
-        throw new Error("Phone number cannot exceed 20 characters");
-      }
       updates.push('phone = ?');
       values.push(phone);
     }
 
     // email
     if (email) {
-      if (email.length > 100) {
-        throw new Error("Email cannot exceed 100 characters");
-      }
-
       // check if email already exists in another record
       const [existing] = await db.query(
         'SELECT id FROM companies WHERE email = ? AND id <> ?',
@@ -492,29 +484,8 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
 
     // address
     if (address) {
-      if (address.length > 150) {
-        throw new Error("Address cannot exceed 150 characters");
-      }
       updates.push('address = ?');
       values.push(address);
-    }
-
-    // city
-    if (city) {
-      if (city.length > 100) {
-        throw new Error("City cannot exceed 100 characters");
-      }
-      updates.push('city = ?');
-      values.push(city);
-    }
-
-    // region 
-    if (region) {
-      if (region.length > 100) {
-        throw new Error("Region cannot exceed 100 characters");
-      }
-      updates.push('region = ?');
-      values.push(region);
     }
 
     if (updates.length === 0) {
@@ -526,11 +497,17 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
 
     await db.query(sql, values);
 
-    res.json({ message: 'Profile updated successfully' });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.json({
+      success: true,
+      message: 'Company updated successfully',
+      companyId,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
-
 });
 
 // PUT /companies/status/:id (admin only)
@@ -538,7 +515,7 @@ router.put('/status/:id', authenticateToken, authorizeAdmin(['superadmin', 'mode
   const companyId = parseInt(req.params.id, 10);
   const { status } = req.body;
 
-   
+
   try {
     if (isNaN(companyId)) {
       throw new Error("Company's id is a must")
@@ -587,7 +564,7 @@ router.put('/verify/:id', authenticateToken, authorizeAdmin(['superadmin', 'mode
 
     const sql = `UPDATE companies SET is_verified= ? WHERE id = ?`;
     await db.query(sql, [verify, companyId]);
-    res.json({ message: "Company's status updated successfully" });
+    res.json({ message: "Company is verified successfully successfully" });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -597,7 +574,7 @@ router.put('/verify/:id', authenticateToken, authorizeAdmin(['superadmin', 'mode
 
 // Admin Adding Company
 router.post('/add-company', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
-  const { name, email, phone, status, address, city, region} = req.body;
+  const { name, email, phone, status, address, city, region } = req.body;
 
   try {
     // Check if company already exists
@@ -606,14 +583,14 @@ router.post('/add-company', authenticateToken, authorizeAdmin(['superadmin', 'mo
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    companyCheck([
-        { name: 'name', value: name, type: 'string', len: 100 },
-        { name: 'email', value: email, type: 'string', len: 100 },
-        { name: 'phone', value: phone, type: 'string', len: 20 },
-        { name: 'status', value: status, type: 'string', valuesList: ['active','inactive','pending','suspended','deleted','rejected'] },
-        { name: 'address', value: address, type: 'string', len: 150 },
-        { name: 'city', value: city, type: 'string', len: 100 },
-        { name: 'region', value: region, type: 'string', len: 100 }
+    fieldCheck([
+      { name: 'name', value: name, type: 'string', len: 100 },
+      { name: 'email', value: email, type: 'string', len: 100 },
+      { name: 'phone', value: phone, type: 'string', len: 20 },
+      { name: 'status', value: status, type: 'string', valuesList: ['active', 'inactive', 'pending', 'suspended', 'deleted', 'rejected'] },
+      { name: 'address', value: address, type: 'string', len: 150 },
+      { name: 'city', value: city, type: 'string', len: 100 },
+      { name: 'region', value: region, type: 'string', len: 100 }
     ]);
 
     const password = generateRandomPassword(10);

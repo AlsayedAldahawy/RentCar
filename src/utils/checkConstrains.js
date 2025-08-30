@@ -1,4 +1,4 @@
-function companyCheck(attributes) {
+function fieldCheck(attributes) {
     for (const attr of attributes) {
         const { name = '', value, type, len, valuesList } = attr;
 
@@ -26,4 +26,4 @@ function companyCheck(attributes) {
     }
 }
 
-module.exports = companyCheck;
+module.exports = fieldCheck;
