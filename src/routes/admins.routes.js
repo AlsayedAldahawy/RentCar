@@ -199,7 +199,7 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
   const requesterId = req.user.id;
   const requesterRole = req.user.role;
 
-  const { name, email, password, role: roleId, phone, status } = req.body;
+  const { name, email, password, roleId, phone, status } = req.body;
 
   const isSelf = requesterId === targetAdminId;
   const isSuperAdmin = requesterRole === 'superadmin';
