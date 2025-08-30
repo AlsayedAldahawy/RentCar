@@ -199,7 +199,7 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
   const requesterId = req.user.id;
   const requesterRole = req.user.role;
 
-  const { name, email, password, role, phone, status } = req.body;
+  const { name, email, password, role: roleId, phone, status } = req.body;
 
   const isSelf = requesterId === targetAdminId;
   const isSuperAdmin = requesterRole === 'superadmin';
@@ -208,14 +208,14 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
     return res.status(403).json({ message: 'You are not allowed to edit other admins' });
   }
 
-  if ((role || status) && !isSuperAdmin) {
+  if ((roleId || status) && !isSuperAdmin) {
     return res.status(403).json({ message: 'Only superadmin can change admin roles or status' });
   }
 
   try {
     // Validate role if provided
-    if (role) {
-      const [roleRows] = await db.query('SELECT id FROM admin_role WHERE id = ?', [role]);
+    if (roleId) {
+      const [roleRows] = await db.query('SELECT id FROM admin_role WHERE id = ?', [roleId]);
       if (roleRows.length === 0) {
         return res.status(400).json({ message: 'Invalid role id' });
       }
@@ -240,7 +240,7 @@ router.put('/:id', authenticateToken, authorizeAdmin(['superadmin', 'moderator']
       updates.push('password = ?');
       values.push(hashedPassword);
     }
-    if (role && isSuperAdmin) updates.push('role_id = ?'), values.push(role);
+    if (roleId && isSuperAdmin) updates.push('role_id = ?'), values.push(roleId);
     if (status && isSuperAdmin) updates.push('status = ?'), values.push(status);
 
     if (updates.length === 0) {
