@@ -28,7 +28,8 @@ router.get('/', async (req, res) => {
 
     // ✅ Fetch cities if region exists
     const [cities] = await db.query(
-      `SELECT * FROM cities WHERE region_id = ? ORDER BY id`,
+      `SELECT c.id, c.name AS name, r.name as region FROM cities AS c JOIN regions AS r
+      ON c.region_id = r.id WHERE region_id = ? ORDER BY id`,
       [regionId]
     );
 

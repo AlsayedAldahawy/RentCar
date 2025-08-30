@@ -7,7 +7,7 @@
  *     tags:
  *       - Cities
  *     parameters:
- *       - in: query
+ *       - in: body
  *         name: regionId
  *         schema:
  *           type: integer
@@ -31,13 +31,13 @@
  *                     properties:
  *                       id:
  *                         type: integer
- *                         example: 1
+ *                         example: 2
  *                       name:
  *                         type: string
- *                         example: "Cairo"
- *                       region_id:
- *                         type: integer
- *                         example: 3
+ *                         example: "Oujda-Angad"
+ *                       region:
+ *                         type: string
+ *                         example: "L'Oriental"
  *       400:
  *         description: regionId is missing, invalid, or not found
  *       500:
