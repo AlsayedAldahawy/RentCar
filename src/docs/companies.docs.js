@@ -53,8 +53,7 @@
  *               - phone
  *               - status
  *               - address
- *               - city
- *               - region
+ *               - cityId
  *             properties:
  *               name:
  *                 type: string
@@ -73,12 +72,9 @@
  *               address:
  *                 type: string
  *                 example: "123 Morocco Street"
- *               city:
- *                 type: string
- *                 example: "Rabat"
- *               region:
- *                 type: string
- *                 example: "Rabat-Salé-Kénitra"
+ *               cityId:
+ *                 type: integer
+ *                 example: 5
  *     responses:
  *       201:
  *         description: Company registered successfully
@@ -438,6 +434,7 @@
  *         description: Server error
  */
 
+// PUT: change company's status (By Admin)
 /**
  * @swagger
  * /companies/status/{id}:
@@ -480,6 +477,7 @@
  *         description: Server error
  */
 
+// PUT: verify company (By Admin)
 /**
  * @swagger
  * /companies/verify/{id}:
@@ -521,6 +519,7 @@
  *         description: Server error
  */
 
+// DELETE: Delete company (By Admin)
 
 /**
  * @swagger

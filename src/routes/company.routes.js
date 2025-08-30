@@ -564,7 +564,7 @@ router.put('/verify/:id', authenticateToken, authorizeAdmin(['superadmin', 'mode
 
     const sql = `UPDATE companies SET is_verified= ? WHERE id = ?`;
     await db.query(sql, [verify, companyId]);
-    res.json({ message: "Company is verified successfully successfully" });
+    res.json({ message: "Company's verification status updated successfully" });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -574,7 +574,7 @@ router.put('/verify/:id', authenticateToken, authorizeAdmin(['superadmin', 'mode
 
 // Admin Adding Company
 router.post('/add-company', authenticateToken, authorizeAdmin(['superadmin', 'moderator']), async (req, res) => {
-  const { name, email, phone, status, address, city, region } = req.body;
+  const { name, email, phone, status, address, cityId} = req.body;
 
   try {
     // Check if company already exists
@@ -589,7 +589,7 @@ router.post('/add-company', authenticateToken, authorizeAdmin(['superadmin', 'mo
       { name: 'phone', value: phone, type: 'string', len: 20 },
       { name: 'status', value: status, type: 'string', valuesList: ['active', 'inactive', 'pending', 'suspended', 'deleted', 'rejected'] },
       { name: 'address', value: address, type: 'string', len: 150 },
-      { name: 'city', value: city, type: 'string', len: 100 },
+      { name: 'cityId', value: cityId, type: 'number'},
       { name: 'region', value: region, type: 'string', len: 100 }
     ]);
 
@@ -601,8 +601,8 @@ router.post('/add-company', authenticateToken, authorizeAdmin(['superadmin', 'mo
 
     // Insert company (unverified by default)
     const [result] = await db.query(
-      'INSERT INTO companies (name, email, password, phone, status, address, city, region) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, phone, status, address, city, region]
+      'INSERT INTO companies (name, email, password, phone, status, address, city_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, phone, status, address, cityId]
     );
 
     // Send verification email
