@@ -99,7 +99,7 @@ router.get('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, r
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
-  const { status, role } = req.query; // Get optional filters
+  const { status, roleId } = req.query; // Get optional filters
 
   try {
     // Build base query dynamically
@@ -114,9 +114,9 @@ router.get('/', authenticateToken, authorizeAdmin(['superadmin']), async (req, r
       queryParams.push(status);
     }
 
-    if (role) {
+    if (roleId) {
       filters.push('admins.role_id = ?');
-      queryParams.push(role);
+      queryParams.push(roleId);
     }
 
     if (filters.length > 0) {
