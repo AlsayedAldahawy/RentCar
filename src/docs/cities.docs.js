@@ -2,20 +2,22 @@
  * @swagger
  * /cities:
  *   get:
- *     summary: Get cities by region
- *     description: Retrieve a list of cities filtered by a specific region ID.
+ *     summary: Get cities
+ *     description: |
+ *       - If no `regionId` is provided → returns **all cities** with their region.  
+ *       - If `regionId` is provided → returns only the cities belonging to that region.  
  *     tags:
  *       - Cities
  *     parameters:
- *       - in: body
+ *       - in: query
  *         name: regionId
  *         schema:
  *           type: integer
- *         required: true
- *         description: Region ID to filter cities
+ *         required: false
+ *         description: Optional region ID to filter cities.
  *     responses:
  *       200:
- *         description: List of cities successfully retrieved
+ *         description: A list of cities.
  *         content:
  *           application/json:
  *             schema:
@@ -31,15 +33,26 @@
  *                     properties:
  *                       id:
  *                         type: integer
- *                         example: 2
+ *                         example: 1
  *                       name:
  *                         type: string
- *                         example: "Oujda-Angad"
+ *                         example: "Cairo"
  *                       region:
  *                         type: string
- *                         example: "L'Oriental"
+ *                         example: "Greater Cairo"
  *       400:
- *         description: regionId is missing, invalid, or not found
+ *         description: Region not found (if invalid regionId is provided).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Region not found"
  *       500:
- *         description: Internal server error
+ *         description: Server error
  */
