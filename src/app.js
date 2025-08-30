@@ -19,6 +19,8 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 
 const adminAuthRoutes = require('./routes/admins.routes');
+const citiesRoute = require('./routes/cities.routes')
+const regionsRoute = require('./routes/regions.routes')
 
 app.use(express.json()); // JSON parsing
 
@@ -35,6 +37,11 @@ app.use('/api/reset', resetRoutes);
 
 app.use('/api/transmission', transmissionRoutes);
 app.use('/api/fuel', fuelRoutes);
+
+app.use('/api/cities', citiesRoute);
+app.use('/api/regions', regionsRoute);
+
+
 
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
